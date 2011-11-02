@@ -13,6 +13,12 @@ class ImageExample(APIExample.Example):
 		sys.stdout.write("%")
 		#self.load(inputfile)
 
+	def delta(self, y1, y2):
+		if(y1==y2):
+			return 0 
+		else:
+			return  1
+
 	def findMVC(self,w, givenY, givenH):
 		maxScore= 0
 		bestH = givenH
@@ -20,13 +26,13 @@ class ImageExample(APIExample.Example):
 		for labelY in self.params.ylabels:
 			if labelY in self.whiteList:
 				continue
-			(h, score, vec) = self.highestScoringLV(w,label)
+			(h, score, vec) = self.highestScoringLV(w,givenY)
 			totalScore = self.delta(givenY, labelY) + score
 			if totalScore> maxScore:
 				bestH = h
-				eestY = labelY
+				bestY = labelY
 		const = self.delta(givenY, labelY)
-		vec = self.psi(bestY, bestH).minus(psi(givenY, givenH))
+		vec = self.psi(bestY, bestH).add(self.psi(givenY, givenH), -1)
 		return (const,vec)
 	
 	def findScoreAllClasses(self, w):
@@ -84,10 +90,11 @@ class ImageExample(APIExample.Example):
 		return result
 
 	def highestScoringLV(self,w, labelY):
-		maxScore = -Inf
-		for latentH in self.hlabels:
-			score= w.dot(psi(labelY,latentH))
+		maxScore = -1e100
+		for latentH in self.params.hlabels:
+			score= w.dot(self.psi(labelY,latentH))
+			
 			if score> maxScore:
 				bestH= latentH
 
-		return (bestH, score, psi(labelY, bestH))
+		return (bestH, score, self.psi(labelY, bestH))

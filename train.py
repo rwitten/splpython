@@ -2,6 +2,7 @@ from implementation import ImageApp
 from implementation import ImagePsi
 
 import sys
+import scipy
 
 class Params(object):
     pass
@@ -10,6 +11,7 @@ def loadKernelFile(kernelFile, params):
 	kFile = open(kernelFile, 'r')
 	params.numKernels = int(kFile.readline().strip())
 	params.ylabels = range(20)
+	params.hlabels = [0]
 	params.kernelNames = []
 	params.kernelStarts = []
 	params.kernelEnds = []
@@ -43,8 +45,11 @@ def main():
 
 	params = Params()
 	loadKernelFile(kernelFile, params) 
-	loadTrainFile(trainFile, params) 
-	params.examples[0].psi(0,None)
+	loadTrainFile(trainFile, params)
+
+	w = ImagePsi.PsiObject(params)
+	optimizer.cuttingPlaneOptimize(w, params)
+ 
 	return params
 
 if __name__== "__main__":
