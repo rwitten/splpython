@@ -1,3 +1,5 @@
+from scipy import sparse
+
 class PsiObject:
 	def __init__(self, params):
 		self.params= params
@@ -25,11 +27,11 @@ class PsiObject:
 		return newObj
 
 	def setEntry(self, labelY, kernel, entry, value):
-		if not self.values[labelY]:
-			self.values[labelY]= scipy.sparse.dokmatrix( [self.singlePsiSize,1]) 
-		
-		self.values[labelY][params.kernelStart[kernel]+entry] = value
-		assert( params.kernelStart[kernel]+entry <= params.kernelEnd[kernel])	
+		if labelY not in self.values:
+			self.values[labelY]= sparse.dok_matrix( (self.params.kernelLengths[kernel],1) ) 
+
+		assert( entry<= self.params.kernelLengths[kernel])	
+		self.values[labelY][entry,0] = value
 
 	def vectorize(self):
 		pass	
