@@ -1,5 +1,6 @@
 from implementation import ImageApp
 from implementation import ImagePsi
+import optimizer
 
 import sys
 import scipy
@@ -16,6 +17,8 @@ def loadKernelFile(kernelFile, params):
 	params.kernelStarts = []
 	params.kernelEnds = []
 	params.kernelLengths= []
+	params.C = 1
+	params.epsilon = 0.01
 	current = 0
 	while 1:
 		newKernelName =kFile.readline()
@@ -28,16 +31,19 @@ def loadKernelFile(kernelFile, params):
 		params.kernelEnds.append(current+ length-1)
 		current+= length
 
-	params.totalLength = current
+	params.totalLength = current # this is the length of w for a single class
+	params.lengthW= current * len(params.ylabels)
 
 def loadTrainFile(trainFile, params):
 	tFile = open(trainFile,'r')
 	params.numExamples = int(tFile.readline())
 	params.examples = []
 	for line in tFile:
+		sys.stdout.write("%")
 		params.examples.append(ImageApp.ImageExample(line,params,len(params.examples)))
 	sys.stdout.write('\n')
 	assert(params.numExamples == len(params.examples))
+	params.maxDualityGap = params.C*params.epsilon*params.numExamples
 
 def main():
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
@@ -54,4 +60,3 @@ def main():
 
 if __name__== "__main__":
 	main()
-

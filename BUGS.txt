@@ -1,2 +1,17 @@
-Try to keep this up to date
-(1)
+Try to keep this up to date:
+
+(0) Is the SSVM actually getting solved?
+(1) No command line processing at all. (This should be modded out, so both
+train.py and eventually test.py can use the same command line args)
+(1a) No writing things to disk.
+(1b) No test.py (but I think after 1 and 1a this should be easy)
+(2) We should make the boundary between the API (things in the basedir) and
+things in 'implementation/' more clear, which can do simply by changing the
+includes. If this doesn't make sense to you, don't worry about it at all.
+(3) params shouldn't have access to examples because examples is mutable.
+Right?
+(4) The caching is a little bit wrong for psi - caching should only depend on
+LV and we should make the right psi vector based on what we have.
+(5) No impute latent variables.
+(6) No biases.
+(7) No SPM.
