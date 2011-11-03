@@ -1,8 +1,9 @@
+import copy
 import re
-import APIExample
-import ImagePsi
 import sys
 
+import APIExample
+import ImagePsi
 class ImageExample(APIExample.Example):
 	def __init__(self, inputFileLine, params,id):
 		self.params = params
@@ -10,7 +11,6 @@ class ImageExample(APIExample.Example):
 		self.psiCache = {}
 		self.id = id
 		self.processFile(inputFileLine)
-		sys.stdout.write("%")
 		#self.load(inputfile)
 
 	def delta(self, y1, y2):
@@ -24,16 +24,16 @@ class ImageExample(APIExample.Example):
 		bestH = givenH
 		bestY = givenY
 		for labelY in self.params.ylabels:
-			if labelY in self.whiteList:
+			if (labelY in self.whiteList) or (labelY==self.trueY):
 				continue
 			(h, score, vec) = self.highestScoringLV(w,givenY)
 			totalScore = self.delta(givenY, labelY) + score
-			if totalScore> maxScore:
+			if totalScore>= maxScore:
 				bestH = h
 				bestY = labelY
 		const = self.delta(givenY, labelY)
-		vec = self.psi(bestY, bestH).add(self.psi(givenY, givenH), -1)
-		return (const,vec)
+		vec = self.psi(bestY, bestH) - self.psi(givenY, givenH)
+		return (const,copy.deepcopy(vec) ) 
 	
 	def findScoreAllClasses(self, w):
 		results = {}
@@ -84,7 +84,7 @@ class ImageExample(APIExample.Example):
 		result = ImagePsi.PsiObject(self.params)
 		for kernelNum in range(self.params.numKernels):
 			for index in range(len(self.xs[kernelNum])):
-				result.setEntry(y,kernelNum,self.values[kernelNum][index],1)
+				ImagePsi.setPsiEntry(result, self.params,y,kernelNum,self.values[kernelNum][index],1)
 	
 		self.psiCache[(y,h)] = result
 		return result
@@ -92,7 +92,7 @@ class ImageExample(APIExample.Example):
 	def highestScoringLV(self,w, labelY):
 		maxScore = -1e100
 		for latentH in self.params.hlabels:
-			score= w.dot(self.psi(labelY,latentH))
+			score= (w.T * self.psi(labelY,latentH)) [0,0]
 			
 			if score> maxScore:
 				bestH= latentH
