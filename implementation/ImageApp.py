@@ -4,13 +4,35 @@ import sys
 
 import APIExample
 import ImagePsi
+import BBoxComputation
+
+class LatentVar:
+	def __init__(self, x_min, x_max, y_min, y_max):
+		self.x_min = x_min
+		self.x_max = x_max
+		self.y_min = y_min
+		self.y_max = y_max
+
 class ImageExample(APIExample.Example):
-	def __init__(self, inputFileLine, params,id):
+	def __init__(self, inputFileLine, params, id, original_example, whiteList_swap_index):
 		self.params = params
-		self.h = []
-		self.psiCache = {}
 		self.id = id
-		self.processFile(inputFileLine)
+		if original_example:
+			print "duplicate id = " + repr(self.id) + " and refers to original id = " + repr(original_example.id)
+			self.psiCache = original_example.psiCache #hopefully this will get shared properly between the two equivalent examples so we don't waste memory
+			self.xs = original_example.xs #need this because different duplicates have different whitelists, so the original won't cache all its y's, plus it's bad design to assume that originals will always get their psi's cached before duplicates
+			self.ys = original_example.ys
+			self.values = original_example.values
+			self.whiteList = copy.deepcopy(original_example.whiteList)
+			self.trueY = int(original_example.whiteList[whiteList_swap_index])
+			self.whiteList[whiteList_swap_index] = original_example.trueY
+			self.params.hlabels = original_example.params.hlabels
+			self.fileUUID = original_example.fileUUID
+		else:
+			print "original id = " + repr(self.id)
+			self.psiCache = {}
+			self.processFile(inputFileLine)
+
 		#self.load(inputfile)
 
 	def delta(self, y1, y2):
@@ -19,20 +41,26 @@ class ImageExample(APIExample.Example):
 		else:
 			return  1
 
-	def findMVC(self,w, givenY, givenH):
-		maxScore= 0
-		bestH = givenH
-		bestY = givenY
+	def findMVC(self,w, givenY, givenH, spl_params):
+		assert(givenY == self.trueY)
+		assert(givenH == self.h)
+		maxScore= float(-1e100)
+		bestH = -1
+		bestY = -1
 		for labelY in self.params.ylabels:
-			if (labelY in self.whiteList) or (labelY==self.trueY):
+			if (labelY in self.whiteList):
 				continue
-			(h, score, vec) = self.highestScoringLV(w,givenY)
+			(h, score, vec) = self.highestScoringLV(w,labelY)
 			totalScore = self.delta(givenY, labelY) + score
-			if totalScore>= maxScore:
+			if totalScore >= maxScore:
 				bestH = h
 				bestY = labelY
-		const = self.delta(givenY, labelY)
-		vec = self.psi(bestY, bestH) - self.psi(givenY, givenH)
+				maxScore = totalScore
+
+		assert(bestH > -1)
+		assert(bestY > -1)
+		const = self.delta(givenY, bestY)
+		vec = self.psi(givenY, givenH) - self.psi(bestY, bestH)
 		return (const,copy.deepcopy(vec) ) 
 	
 	def findScoreAllClasses(self, w):
@@ -42,14 +70,27 @@ class ImageExample(APIExample.Example):
 			results[label] = score
 		return results
 
+	def fill_hlabels(self, filename):
+		hfile = open(filename)
+		self.params.hlabels = []
+		for line in hfile:
+			bbox_coords = line.split()
+			self.params.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
+		
+		self.params.hlabels = self.params.hlabels[0:999:50]
+		hfile.close()
+
 	def processFile(self, inputFileLine):
+		print "processFile"
 		objects  = inputFileLine.split()
 		self.fileUUID= objects[0]
 		self.width = objects[2]
 		self.height = objects[1]
 		self.trueY = int(objects[3])
 		self.whiteList = objects[4:]
-
+	
+		self.fill_hlabels("/afs/cs.stanford.edu/u/rwitten/scratch/mkl_features/%s.txt"%(self.fileUUID))
+		
 		self.xs = []
 		self.ys = []
 		self.values = []
@@ -77,24 +118,32 @@ class ImageExample(APIExample.Example):
 
  
 	# this returns a psi object
-	def psi(self, y,h):
+	def psi(self, y,h): 
+	#	print "in psi, y = " + repr(y)
+	#	print "in psi, h = " + repr(h)
 		if (y,h) in self.psiCache:
 			return self.psiCache[(y,h)]
 
+		print "id = " + repr(self.id) + " y = " + repr(y) + " h = " + repr(h)
 		result = ImagePsi.PsiObject(self.params)
 		for kernelNum in range(self.params.numKernels):
+			#print "imma let ya kernel, but i just wanna say kernels kernel is the best kernel of all kernels, of all kernels!"
 			for index in range(len(self.xs[kernelNum])):
-				ImagePsi.setPsiEntry(result, self.params,y,kernelNum,self.values[kernelNum][index],1)
-	
+				bboxes_containing_descriptor = BBoxComputation.get_bboxes_containing_descriptor(self.xs[kernelNum][index], self.ys[kernelNum][index], self.params.hlabels[h])
+				ImagePsi.setPsiEntry(result, self.params, y, kernelNum, bboxes_containing_descriptor, self.values[kernelNum][index],1)
+		
 		self.psiCache[(y,h)] = result
 		return result
 
 	def highestScoringLV(self,w, labelY):
-		maxScore = -1e100
-		for latentH in self.params.hlabels:
-			score= (w.T * self.psi(labelY,latentH)) [0,0]
-			
-			if score> maxScore:
-				bestH= latentH
+		maxScore = float(-1e100)
+		bestH = -1
+		for latentH in range(len(self.params.hlabels)):
+			score = (w.T * self.psi(labelY,latentH)) [0,0]		
+			if score > maxScore:
+				bestH = latentH
+				maxScore = score
 
+		assert(bestH > -1)
+		#print "highestScoringLV: maxScore = " + repr(maxScore)
 		return (bestH, score, self.psi(labelY, bestH))
