@@ -71,24 +71,24 @@ def solveQP(constraints, margins, params):
 	wOut = numpy.mat(xx).T
 	return wOut,task.getprimalobj(mosek.soltype.itr)
 
-def findCuttingPlane(w, params, spl_params):
+def findCuttingPlane(w, params):
 	vec = sparse.dok_matrix( ( params.lengthW,1 ) )
 	const = float(0.0)
 	for i in range(params.numExamples):
-		(newConst, newVec) = params.examples[i].findMVC(w, params.examples[i].trueY, params.examples[i].h, spl_params)
+		(newConst, newVec) = params.examples[i].findMVC(w, params.examples[i].trueY, params.examples[i].h)
 		const += newConst
 		vec= vec + newVec
 
 	return (const * params.C / float(params.numExamples), vec * params.C / float(params.numExamples))
 
-def computeObjective(w, params, spl_params):
+def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
-	(margin, constraint) = findCuttingPlane(w, params, spl_params)
+	(margin, constraint) = findCuttingPlane(w, params)
 	objective += margin - ((w.T * constraint)[0,0])
 	return objective
 
-def cuttingPlaneOptimize(w, params, spl_params):
-	objective = computeObjective(w, params, spl_params)
+def cuttingPlaneOptimize(w, params):
+	objective = computeObjective(w, params)
 	print "At beginning of cuttingPlaneOptimize, objective = " + repr(objective)
 	constraints = []
 	margins = []

@@ -1,19 +1,56 @@
 import copy
+import numpy
 import re
+from scipy import sparse
 import sys
 
-import APIExample
 import ImagePsi
 import BBoxComputation
 
-class LatentVar:
-	def __init__(self, x_min, x_max, y_min, y_max):
-		self.x_min = x_min
-		self.x_max = x_max
-		self.y_min = y_min
-		self.y_max = y_max
 
-class ImageExample(APIExample.Example):
+def PsiObject(params, isFeatureVec):
+	#print "params.lengthW = " + repr(params.lengthW)
+	if isFeatureVec:
+		po = sparse.dok_matrix( ( params.lengthW,1 ) )
+		for j in range(len(params.ylabels)):
+			po[j * params.totalLength, 0] = 1
+	else:
+		po = numpy.mat(numpy.zeros( ( params.lengthW,1 ) ))
+
+	return po
+
+
+def loadKernelFile(kernelFile, params):
+	kFile = open(kernelFile, 'r')
+	params.numKernels = int(kFile.readline().strip())
+	params.ylabels = range(5)
+	params.hlabels = [0]
+	params.kernelNames = []
+	params.kernelStarts = []
+	params.kernelEnds = []
+	params.kernelLengths= []
+	params.rawKernelLengths = []
+	params.C = 10
+	params.epsilon = 0.01
+	current = 1 #to account for bias
+	while 1:
+		newKernelName =kFile.readline()
+		if not newKernelName:
+			break
+		params.kernelStarts.append(current)
+		params.kernelNames.append(newKernelName.strip())
+		rawLength = int(kFile.readline().strip())
+		params.rawKernelLengths.append(rawLength)
+		length = 6 * rawLength #to account for SPM (plus whole image plus outside of bbox)
+		params.kernelLengths.append(length)
+		params.kernelEnds.append(current + length-1)
+		current += length
+
+	params.totalLength = current # this is the length of w for a single class
+	params.lengthW= current * len(params.ylabels)
+
+
+class ImageExample:
 	def __init__(self, inputFileLine, params, id, original_example, whiteList_swap_index):
 		self.params = params
 		self.id = id
@@ -41,7 +78,7 @@ class ImageExample(APIExample.Example):
 		else:
 			return  1
 
-	def findMVC(self,w, givenY, givenH, spl_params):
+	def findMVC(self,w, givenY, givenH):
 		assert(givenY == self.trueY)
 		assert(givenH == self.h)
 		maxScore= float(-1e100)
@@ -76,7 +113,6 @@ class ImageExample(APIExample.Example):
 		for line in hfile:
 			bbox_coords = line.split()
 			self.params.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
-		
 		self.params.hlabels = self.params.hlabels[0:999:50]
 		hfile.close()
 
@@ -125,7 +161,7 @@ class ImageExample(APIExample.Example):
 			return self.psiCache[(y,h)]
 
 		print "id = " + repr(self.id) + " y = " + repr(y) + " h = " + repr(h)
-		result = ImagePsi.PsiObject(self.params)
+		result = PsiObject(self.params, True)
 		for kernelNum in range(self.params.numKernels):
 			#print "imma let ya kernel, but i just wanna say kernels kernel is the best kernel of all kernels, of all kernels!"
 			for index in range(len(self.xs[kernelNum])):
@@ -147,3 +183,11 @@ class ImageExample(APIExample.Example):
 		assert(bestH > -1)
 		#print "highestScoringLV: maxScore = " + repr(maxScore)
 		return (bestH, score, self.psi(labelY, bestH))
+
+class LatentVar:
+	def __init__(self, x_min, x_max, y_min, y_max):
+		self.x_min = x_min
+		self.x_max = x_max
+		self.y_min = y_min
+		self.y_max = y_max
+

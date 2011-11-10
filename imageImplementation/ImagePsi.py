@@ -1,12 +1,5 @@
 from scipy import sparse
 
-def PsiObject(params):
-	#print "params.lengthW = " + repr(params.lengthW)
-	po = sparse.dok_matrix( ( params.lengthW,1 ) )
-	for j in range(len(params.ylabels)):
-		po[j * params.totalLength, 0] = 1
-
-	return po
 
 def setPsiEntry(featureVec, params, labelY, kernel, bboxes_containing_descriptor, entry, value):
 	#print "setPsiEntry"
