@@ -1,8 +1,7 @@
-import sys
-import math
+import datetime
 import mosek
 import numpy
-from scipy import linalg
+
 from scipy import sparse
 
 #optimization problem is
@@ -13,8 +12,6 @@ from scipy import sparse
 # Define a stream printer to grab output from MOSEK
 def streamprinter(text):
 	pass
-#	sys.stdout.write(text)
-#	sys.stdout.flush()
 
 
 #we want that [w \psi]^t [f_i 1] >= \delta_i
@@ -97,9 +94,10 @@ def cuttingPlaneOptimize(w, params):
 	LB = - numpy.inf
 	UB = numpy.inf
 
-	(margin, constraint) = findCuttingPlane(w, params, spl_params)
+	(margin, constraint) = findCuttingPlane(w, params)
 
 	while (UB - LB > params.maxDualityGap):
+		starttime = datetime.datetime.now()
 		(xs, garbage) = constraint.nonzero()
 		xs = xs.tolist() + [params.totalLength]
 		values = constraint.data.tolist() + [1]
@@ -107,20 +105,28 @@ def cuttingPlaneOptimize(w, params):
 		constraints.append( (xs,values)) 
 		margins.append(margin)
 
+		startqp = datetime.datetime.now()	
 		(w, newLB) = solveQP(constraints, margins, params)
+		endqp = datetime.datetime.now()	
 
 		if(newLB > LB):
 			LB = newLB
 		
-		(margin, constraint) = findCuttingPlane(w, params, spl_params)
+		startFMVC = datetime.datetime.now()	
+		(margin, constraint) = findCuttingPlane(w, params)
+		endFMVC= datetime.datetime.now()	
+		
 		assert(margin - ((w.T * constraint)[0,0]) >= float(0.0)) #Even this assertion isn't strong enough - NONE of the vectors that sum up to the cutting plane should get a negative number when dot-producted with w and subtracted from the appropriate delta
 		newUB = margin - (w.T * constraint)[0,0] + 0.5 * (w.T * w)[0,0]
 
 		if (newUB < UB):
 			UB = newUB
+		
+		endtime= datetime.datetime.now()
 
 		print( "UB is %f and LB is %f" % ( UB, LB) )
+		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 
-	objective = computeObjective(w, params, spl_params)
+	objective = computeObjective(w, params)
 	print "At end of cuttingPlaneOptimize, objective = " + repr(objective)
 	return w

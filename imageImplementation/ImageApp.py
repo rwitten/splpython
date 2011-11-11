@@ -1,30 +1,48 @@
 import copy
 import numpy
+import os
 import re
 from scipy import sparse
 import sys
 
+import ImageCache
 import ImagePsi
 import BBoxComputation
 
+def padCanonicalPsi(canonicalPsi, classY,  params):
+	if ( classY > 0 and classY< params.numYLabels-1):
+		before = sparse.dok_matrix( ( params.totalLength*classY,1) )
+		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )   
+		return sparse.vstack( (before, canonicalPsi,  after))
+	elif ( classY==0):
+		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )
+		return sparse.vstack( (canonicalPsi,  after) )
+	else:
+		assert(classY == params.numYLabels-1)
+		before = sparse.dok_matrix( ( params.totalLength*classY,1) )
+		return sparse.vstack( (before,canonicalPsi))
 
 def PsiObject(params, isFeatureVec):
-	#print "params.lengthW = " + repr(params.lengthW)
+	print "params.lengthW = " + repr(params.lengthW)
 	if isFeatureVec:
 		po = sparse.dok_matrix( ( params.lengthW,1 ) )
-		for j in range(len(params.ylabels)):
-			po[j * params.totalLength, 0] = 1
+#		for j in range(len(params.ylabels)):
+#			po[j * params.totalLength, 0] = 1
 	else:
 		po = numpy.mat(numpy.zeros( ( params.lengthW,1 ) ))
 
 	return po
 
+def OneClassPsiObject(params):
+	result = sparse.dok_matrix( ( params.totalLength,1 ) )
+	result[0,0] = 1
+	return result
 
 def loadKernelFile(kernelFile, params):
 	kFile = open(kernelFile, 'r')
 	params.numKernels = int(kFile.readline().strip())
-	params.ylabels = range(5)
-	params.hlabels = [0]
+	params.ylabels = range(20)
+	params.numYLabels = len(params.ylabels)
 	params.kernelNames = []
 	params.kernelStarts = []
 	params.kernelEnds = []
@@ -51,26 +69,11 @@ def loadKernelFile(kernelFile, params):
 
 
 class ImageExample:
-	def __init__(self, inputFileLine, params, id, original_example, whiteList_swap_index):
+	def __init__(self, inputFileLine, params, exampleNumber):
 		self.params = params
-		self.id = id
-		if original_example:
-			print "duplicate id = " + repr(self.id) + " and refers to original id = " + repr(original_example.id)
-			self.psiCache = original_example.psiCache #hopefully this will get shared properly between the two equivalent examples so we don't waste memory
-			self.xs = original_example.xs #need this because different duplicates have different whitelists, so the original won't cache all its y's, plus it's bad design to assume that originals will always get their psi's cached before duplicates
-			self.ys = original_example.ys
-			self.values = original_example.values
-			self.whiteList = copy.deepcopy(original_example.whiteList)
-			self.trueY = int(original_example.whiteList[whiteList_swap_index])
-			self.whiteList[whiteList_swap_index] = original_example.trueY
-			self.params.hlabels = original_example.params.hlabels
-			self.fileUUID = original_example.fileUUID
-		else:
-			print "original id = " + repr(self.id)
-			self.psiCache = {}
-			self.processFile(inputFileLine)
-
-		#self.load(inputfile)
+		self.id = exampleNumber
+		self.processFile(inputFileLine)
+		self.psiCache = params.cache
 
 	def delta(self, y1, y2):
 		if(y1==y2):
@@ -81,6 +84,7 @@ class ImageExample:
 	def findMVC(self,w, givenY, givenH):
 		assert(givenY == self.trueY)
 		assert(givenH == self.h)
+		
 		maxScore= float(-1e100)
 		bestH = -1
 		bestY = -1
@@ -88,6 +92,7 @@ class ImageExample:
 			if (labelY in self.whiteList):
 				continue
 			(h, score, vec) = self.highestScoringLV(w,labelY)
+
 			totalScore = self.delta(givenY, labelY) + score
 			if totalScore >= maxScore:
 				bestH = h
@@ -107,17 +112,16 @@ class ImageExample:
 			results[label] = score
 		return results
 
-	def fill_hlabels(self, filename):
+	def fillHLabels(self, filename):
 		hfile = open(filename)
-		self.params.hlabels = []
+		self.hlabels = []
 		for line in hfile:
 			bbox_coords = line.split()
-			self.params.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
-		self.params.hlabels = self.params.hlabels[0:999:50]
+			self.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
+		self.hlabels = self.hlabels[0:100]
 		hfile.close()
 
 	def processFile(self, inputFileLine):
-		print "processFile"
 		objects  = inputFileLine.split()
 		self.fileUUID= objects[0]
 		self.width = objects[2]
@@ -125,7 +129,7 @@ class ImageExample:
 		self.trueY = int(objects[3])
 		self.whiteList = objects[4:]
 	
-		self.fill_hlabels("/afs/cs.stanford.edu/u/rwitten/scratch/mkl_features/%s.txt"%(self.fileUUID))
+		self.fillHLabels("/afs/cs.stanford.edu/u/rwitten/scratch/mkl_features/%s.txt"%(self.fileUUID))
 		
 		self.xs = []
 		self.ys = []
@@ -154,34 +158,58 @@ class ImageExample:
 
  
 	# this returns a psi object
-	def psi(self, y,h): 
-	#	print "in psi, y = " + repr(y)
-	#	print "in psi, h = " + repr(h)
-		if (y,h) in self.psiCache:
-			return self.psiCache[(y,h)]
+	def psi(self, y,h, returnCanonicalPsi= False):
+		if (self.fileUUID,h) in self.psiCache.map.keys():
+			if returnCanonicalPsi:
+				return self.psiCache.get((self.fileUUID,h))
+			else:
+				return padCanonicalPsi(self.psiCache.get((self.fileUUID,h)),y,self.params)
 
-		print "id = " + repr(self.id) + " y = " + repr(y) + " h = " + repr(h)
-		result = PsiObject(self.params, True)
+		try:
+			os.makedirs("/vision/u/rwitten/features/%s" % (self.fileUUID))
+		except OSError:
+			pass
+
+		filepath = "/vision/u/rwitten/features/%s/%s.rlw" %(self.fileUUID, h)
+		if os.path.exists(filepath):
+			result= ImageCache.loadObject(filepath)
+			self.psiCache.set((self.fileUUID,h),result)
+			if returnCanonicalPsi:
+				return result
+			else:
+				return padCanonicalPsi(result, y, self.params)
+
+
+		result = OneClassPsiObject(self.params)
 		for kernelNum in range(self.params.numKernels):
-			#print "imma let ya kernel, but i just wanna say kernels kernel is the best kernel of all kernels, of all kernels!"
 			for index in range(len(self.xs[kernelNum])):
-				bboxes_containing_descriptor = BBoxComputation.get_bboxes_containing_descriptor(self.xs[kernelNum][index], self.ys[kernelNum][index], self.params.hlabels[h])
-				ImagePsi.setPsiEntry(result, self.params, y, kernelNum, bboxes_containing_descriptor, self.values[kernelNum][index],1)
-		
-		self.psiCache[(y,h)] = result
-		return result
+				bboxesContainingDescriptor = BBoxComputation.get_bboxes_containing_descriptor(self.xs[kernelNum][index], self.ys[kernelNum][index], self.hlabels[h])
+				ImagePsi.setPsiEntry(result, self.params, y, kernelNum, bboxesContainingDescriptor, self.values[kernelNum][index],1)
+	
+		result = sparse.csr_matrix(result)	
+		self.psiCache.set((self.fileUUID,h),result)
+		ImageCache.cacheObject(filepath, result)
+
+		if returnCanonicalPsi:
+			return result
+		else:
+			return padCanonicalPsi(result, y,self.params)
 
 	def highestScoringLV(self,w, labelY):
 		maxScore = float(-1e100)
 		bestH = -1
-		for latentH in range(len(self.params.hlabels)):
-			score = (w.T * self.psi(labelY,latentH)) [0,0]		
+		start = labelY*self.params.totalLength
+		end= (labelY+1)*self.params.totalLength
+		wlocal = w.T[0,start:end]
+
+		for latentH in range(len(self.hlabels)):
+			psiVec = self.psi(labelY,latentH, returnCanonicalPsi=True)
+			score = (wlocal * psiVec) [0,0]		
 			if score > maxScore:
 				bestH = latentH
 				maxScore = score
 
 		assert(bestH > -1)
-		#print "highestScoringLV: maxScore = " + repr(maxScore)
 		return (bestH, score, self.psi(labelY, bestH))
 
 class LatentVar:

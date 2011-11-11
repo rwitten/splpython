@@ -5,11 +5,11 @@ import sys
 import SSVM
 
 def optimize(w, params):
-	if params.spl_params.spl_mode == "CCCP":
+	if params.splParams.splMode == "CCCP":
 		w = SSVM.cuttingPlaneOptimize(w, params)
-	elif params.spl_params.spl_mode == 1:
+	elif params.splParams.splMode == 1:
 		assert(0) #TODO: actually do stuff
-	elif params.spl_params.spl_mode == 2:
+	elif params.splParams.splMode == 2:
 		assert(0) #TODO: actually do stuff
 	else:
 		assert(0) #TODO: actually do stuff
