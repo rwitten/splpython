@@ -44,7 +44,8 @@ def setOptions(optdict):
 		params.syntheticParams.numLatents = 10
 		params.syntheticParams.strength = 3.0
 		params.numExamples = 10
-		params.lengthW = 2
+		params.totalLength = params.numYLabels + 1
+		params.lengthW = params.numYLabels * params.totalLength
 		if '--syntheticNumLatents' in optdict:
 			params.syntheticParams.numLatents = int(optdict['--syntheticNumLatents'])
 
@@ -54,15 +55,12 @@ def setOptions(optdict):
 		if '--syntheticStrength' in optdict:
 			params.syntheticParams.strength = float(optdict['--syntheticStrength'])
 
-		if '--syntheticLengthW' in optdict:
-			params.lengthW = int(optdict['--syntheticLengthW'])
-
 	params.ylabels = range(params.numYLabels)
 	params.maxDualityGap = params.C * params.epsilon
 	return (params, trainFile, kernelFile)
 
 def getUserInput():
-	longOptions = ['trainFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticLengthW=', 'syntheticNumLatents=']
+	longOptions = ['trainFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=']
 	(optlist, garbage) = getopt.getopt(sys.argv[1:], '', longOptions)
 	optdict = {}
 	for o, a in optlist:
