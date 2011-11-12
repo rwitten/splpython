@@ -1,9 +1,9 @@
 import datetime
 import mosek
 import numpy
-
 from scipy import sparse
 
+from imageImplementation import ImageApp as App
 #optimization problem is
 # minimize .5 |w|_2^2 + \frac{C}{n} \sum_{i=1}^n \Psi_i
 # (which we solve in the one slack formulation
@@ -68,19 +68,10 @@ def solveQP(constraints, margins, params):
 	wOut = numpy.mat(xx).T
 	return wOut,task.getprimalobj(mosek.soltype.itr)
 
-def findCuttingPlane(w, params):
-	vec = sparse.dok_matrix( ( params.lengthW,1 ) )
-	const = float(0.0)
-	for i in range(params.numExamples):
-		(newConst, newVec) = params.examples[i].findMVC(w, params.examples[i].trueY, params.examples[i].h)
-		const += newConst
-		vec= vec + newVec
-
-	return (const * params.C / float(params.numExamples), vec * params.C / float(params.numExamples))
 
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
-	(margin, constraint) = findCuttingPlane(w, params)
+	(margin, constraint) = App.findCuttingPlane(w, params)
 	objective += margin - ((w.T * constraint)[0,0])
 	return objective
 
@@ -94,7 +85,7 @@ def cuttingPlaneOptimize(w, params):
 	LB = - numpy.inf
 	UB = numpy.inf
 
-	(margin, constraint) = findCuttingPlane(w, params)
+	(margin, constraint) = App.findCuttingPlane(w, params)
 
 	while (UB - LB > params.maxDualityGap):
 		starttime = datetime.datetime.now()
@@ -113,7 +104,7 @@ def cuttingPlaneOptimize(w, params):
 			LB = newLB
 		
 		startFMVC = datetime.datetime.now()	
-		(margin, constraint) = findCuttingPlane(w, params)
+		(margin, constraint) = App.findCuttingPlane(w, params)
 		endFMVC= datetime.datetime.now()	
 		
 		assert(margin - ((w.T * constraint)[0,0]) >= float(0.0)) #Even this assertion isn't strong enough - NONE of the vectors that sum up to the cutting plane should get a negative number when dot-producted with w and subtracted from the appropriate delta

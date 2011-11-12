@@ -1,13 +1,22 @@
+import cPickle
 import copy
 import numpy
 import os
 import re
 from scipy import sparse
+import signal
 import sys
+import multiprocessing#.dummy as multiprocessing
 
 import ImageCache
 import ImagePsi
 import BBoxComputation
+
+def delta(y1, y2):
+	if(y1==y2):
+		return 0 
+	else:
+		return  1
 
 def padCanonicalPsi(canonicalPsi, classY,  params):
 	if ( classY > 0 and classY< params.numYLabels-1):
@@ -75,35 +84,29 @@ class ImageExample:
 		self.processFile(inputFileLine)
 		self.psiCache = params.cache
 
-	def delta(self, y1, y2):
-		if(y1==y2):
-			return 0 
-		else:
-			return  1
 
-	def findMVC(self,w, givenY, givenH):
-		assert(givenY == self.trueY)
-		assert(givenH == self.h)
-		
-		maxScore= float(-1e100)
-		bestH = -1
-		bestY = -1
-		for labelY in self.params.ylabels:
-			if (labelY in self.whiteList):
-				continue
-			(h, score, vec) = self.highestScoringLV(w,labelY)
-
-			totalScore = self.delta(givenY, labelY) + score
-			if totalScore >= maxScore:
-				bestH = h
-				bestY = labelY
-				maxScore = totalScore
-
-		assert(bestH > -1)
-		assert(bestY > -1)
-		const = self.delta(givenY, bestY)
-		vec = self.psi(givenY, givenH) - self.psi(bestY, bestH)
-		return (const,copy.deepcopy(vec) ) 
+#	def findMVC(self,w, givenY, givenH):
+#		assert(givenY == self.trueY)
+#		assert(givenH == self.h)
+#		
+#		maxScore= float(-1e100)
+#		bestH = -1
+#		bestY = -1
+#		for labelY in self.params.ylabels:
+#			if (labelY in self.whiteList):
+#				continue
+#			(h, score, vec) = self.highestScoringLV(w,labelY)
+#			totalScore = delta(givenY, labelY) + score
+#			if totalScore >= maxScore:
+#				bestH = h
+#				bestY = labelY
+#				maxScore = totalScore
+#
+#		assert(bestH > -1)
+#		assert(bestY > -1)
+#		const = delta(givenY, bestY)
+#		vec = self.psi(givenY, givenH) - self.psi(bestY, bestH)
+#		return (const,copy.deepcopy(vec) ) 
 	
 	def findScoreAllClasses(self, w):
 		results = {}
@@ -156,61 +159,135 @@ class ImageExample:
 			self.xs[index].append(int(data[1]))
 			self.values[index].append(int(data[2])-1)
 
- 
 	# this returns a psi object
-	def psi(self, y,h, returnCanonicalPsi= False):
-		if (self.fileUUID,h) in self.psiCache.map.keys():
-			if returnCanonicalPsi:
-				return self.psiCache.get((self.fileUUID,h))
-			else:
-				return padCanonicalPsi(self.psiCache.get((self.fileUUID,h)),y,self.params)
+	def psi(self, y,h, doPadCanonicalPsi = True):
+		psi = (self.psis()[h,:]).T
+		if doPadCanonicalPsi:
+			return padCanonicalPsi(psi, y, self.params)
+		else:
+			return psi
 
-		try:
-			os.makedirs("/vision/u/rwitten/features/%s" % (self.fileUUID))
-		except OSError:
-			pass
+	def psis(self):
+		if self.fileUUID in self.psiCache.map.keys():
+			return self.psiCache.get(self.fileUUID)
 
-		filepath = "/vision/u/rwitten/features/%s/%s.rlw" %(self.fileUUID, h)
+		filepath = "/vision/u/rwitten/features/%s_%d.rlw" %(self.fileUUID, len(self.hlabels))
 		if os.path.exists(filepath):
 			result= ImageCache.loadObject(filepath)
-			self.psiCache.set((self.fileUUID,h),result)
-			if returnCanonicalPsi:
-				return result
-			else:
-				return padCanonicalPsi(result, y, self.params)
+			self.psiCache.set(self.fileUUID,result)
+			return result
 
+		features = []
+		for h in self.hlabels:
+			singleResult = OneClassPsiObject(self.params)
+			for kernelNum in range(self.params.numKernels):
+				for index in range(len(self.xs[kernelNum])):
+					bboxesContainingDescriptor = BBoxComputation.get_bboxes_containing_descriptor(self.xs[kernelNum][index], self.ys[kernelNum][index], h)
+					ImagePsi.setPsiEntry(singleResult, self.params, 0, kernelNum, bboxesContainingDescriptor, self.values[kernelNum][index],1)
+			features.append(singleResult)
 
-		result = OneClassPsiObject(self.params)
-		for kernelNum in range(self.params.numKernels):
-			for index in range(len(self.xs[kernelNum])):
-				bboxesContainingDescriptor = BBoxComputation.get_bboxes_containing_descriptor(self.xs[kernelNum][index], self.ys[kernelNum][index], self.hlabels[h])
-				ImagePsi.setPsiEntry(result, self.params, y, kernelNum, bboxesContainingDescriptor, self.values[kernelNum][index],1)
+		result = sparse.hstack( features).T.asformat('csc')
 	
-		result = sparse.csr_matrix(result)	
-		self.psiCache.set((self.fileUUID,h),result)
+		self.psiCache.set(self.fileUUID,result)
 		ImageCache.cacheObject(filepath, result)
 
-		if returnCanonicalPsi:
-			return result
-		else:
-			return padCanonicalPsi(result, y,self.params)
+		return result
 
 	def highestScoringLV(self,w, labelY):
-		maxScore = float(-1e100)
-		bestH = -1
 		start = labelY*self.params.totalLength
 		end= (labelY+1)*self.params.totalLength
-		wlocal = w.T[0,start:end]
+		wlocal = w[start:end,0]
+		
+		psis = self.psis()
+		scores = psis*wlocal;
+		maxScore = scores.max()
+		bestH = scores.argmax()
 
-		for latentH in range(len(self.hlabels)):
-			psiVec = self.psi(labelY,latentH, returnCanonicalPsi=True)
-			score = (wlocal * psiVec) [0,0]		
-			if score > maxScore:
-				bestH = latentH
-				maxScore = score
+		return  (bestH, maxScore, self.psi(labelY, bestH))
 
-		assert(bestH > -1)
-		return (bestH, score, self.psi(labelY, bestH))
+def init_worker():
+	return
+#	signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
+class FMVCJob():
+	pass
+
+def highestScoringLVUtility(w,labelY,job):
+	start = labelY*job.totalLength
+	end= (labelY+1)*job.totalLength
+	wlocal = w[start:end,0]
+	
+	psis = job.psis
+	scores = psis*wlocal;
+	maxScore = scores.max()
+	bestH = scores.argmax()
+
+	psiVec=padCanonicalPsi((job.psis[bestH,:]).T, labelY, job)
+	return (bestH, maxScore)
+	
+def getPsi(y,h, job):
+	psi = (job.psis[h,:]).T
+	return padCanonicalPsi(psi, y, job)	 
+
+def processJob(job):
+	maxScore= float(-1e100)
+	bestH = -1
+	bestY = -1
+
+	for labelY in job.ylabels:
+		if (labelY in job.whiteList):
+			continue
+		(h, score) = highestScoringLVUtility(job.w,labelY,job)
+		totalScore = delta(job.givenY, labelY) + score
+		if totalScore >= maxScore:
+			bestH = h
+			bestY = labelY
+			maxScore = totalScore
+
+	assert(bestH > -1)
+	assert(bestY > -1)
+	const = delta(job.givenY, bestY)
+	vec = getPsi(job.givenY, job.givenH,job) - getPsi(bestY, bestH,job)
+	return (const,copy.deepcopy(vec) ) 
+
+def findCuttingPlane(w, params):
+	from datetime import datetime
+	start = datetime.now()
+
+	def jobify(example):
+		job = FMVCJob()
+		job.psis = example.psis()
+		job.whiteList =  example.whiteList
+		job.ylabels = example.params.ylabels
+		job.totalLength = example.params.totalLength
+		job.givenY= example.trueY
+		job.givenH = example.h
+		job.numYLabels = example.params.numYLabels
+		job.w = w
+		return (job)
+
+
+	def sumResults(result1, result2):
+		return ( result1[0]+result2[0], result1[1]+result2[1])
+
+	p = multiprocessing.Pool(40,init_worker)
+
+	jobs = map(jobify, params.examples)
+
+	try:
+		output = map(processJob, jobs)
+		const,vec= reduce(sumResults, output)
+	except KeyboardInterrupt:
+		p.terminate()
+		p.join()
+	else:
+		p.close()
+		p.join()
+
+	end= datetime.now()
+	print("FCP took %f" %( (end-start).total_seconds()))
+	return (const * params.C / float(params.numExamples), vec * params.C / float(params.numExamples))
 
 class LatentVar:
 	def __init__(self, x_min, x_max, y_min, y_max):
