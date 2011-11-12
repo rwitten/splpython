@@ -74,6 +74,9 @@ class ImageExample:
 			self.hlabels = range(params.syntheticParams.numLatents)
 			self.trueY = exampleNumber % len(params.ylabels)
 			self.fileUUID = id
+			self.noisevectlist = []
+			for i in range(params.syntheticParams.numLatents * params.numYLabels):
+				self.noisevectlist.append(numpy.random.randn(params.lengthW, 1))
 			return
 
 		self.processFile(inputFileLine)
@@ -170,9 +173,9 @@ class ImageExample:
 				result = numpy.zeros((self.params.lengthW, 1))
 				result[0] = self.params.syntheticParams.strength
 			else:
-				result = numpy.random.randn(self.params.lengthW, 1)
+				result = self.noisevectlist[y * len(self.hlabels) + h]
 
-			return result
+			return sparse.dok_matrix(result)
 
 		if (self.fileUUID,h) in self.psiCache.map.keys():
 			if returnCanonicalPsi:
@@ -229,7 +232,7 @@ class ImageExample:
 				maxScore = score
 
 		assert(bestH > -1)
-		return (bestH, score, self.psi(labelY, bestH))
+		return (bestH, maxScore, self.psi(labelY, bestH))
 
 class LatentVar:
 	def __init__(self, x_min, x_max, y_min, y_max):

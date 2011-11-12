@@ -41,9 +41,9 @@ def setOptions(optdict):
 	if '--synthetic' in optdict and int(optdict['--synthetic']):
 		print("shoe")
 		params.syntheticParams = Params()
-		params.syntheticParams.numLatents = 100
+		params.syntheticParams.numLatents = 10
 		params.syntheticParams.strength = 3.0
-		params.numExamples = 100
+		params.numExamples = 10
 		params.lengthW = 2
 		if '--syntheticNumLatents' in optdict:
 			params.syntheticParams.numLatents = int(optdict['--syntheticNumLatents'])
