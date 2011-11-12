@@ -1,11 +1,12 @@
 import copy
 import numpy
 import os
+from numpy import random
 import re
 from scipy import sparse
 import sys
 
-import ImageCache
+#import ImageCache #TODO: uncomment once this module exists
 import ImagePsi
 import BBoxComputation
 
@@ -39,21 +40,13 @@ def OneClassPsiObject(params):
 	return result
 
 def loadKernelFile(kernelFile, params):
-	if params.synthetic:
-		params.lengthW = 2
-		return
-
 	kFile = open(kernelFile, 'r')
 	params.numKernels = int(kFile.readline().strip())
-	params.ylabels = range(20)
-	params.numYLabels = len(params.ylabels)
 	params.kernelNames = []
 	params.kernelStarts = []
 	params.kernelEnds = []
 	params.kernelLengths= []
 	params.rawKernelLengths = []
-	params.C = 10
-	params.epsilon = 0.01
 	current = 1 #to account for bias
 	while 1:
 		newKernelName =kFile.readline()
@@ -76,6 +69,13 @@ class ImageExample:
 	def __init__(self, inputFileLine, params, exampleNumber):
 		self.params = params
 		self.id = exampleNumber
+		if params.syntheticParams:
+			self.whiteList = []
+			self.hlabels = range(params.syntheticParams.numLatents)
+			self.trueY = exampleNumber % len(params.ylabels)
+			self.fileUUID = id
+			return
+
 		self.processFile(inputFileLine)
 		self.psiCache = params.cache
 
@@ -96,6 +96,7 @@ class ImageExample:
 			if (labelY in self.whiteList):
 				continue
 			(h, score, vec) = self.highestScoringLV(w,labelY)
+
 
 			totalScore = self.delta(givenY, labelY) + score
 			if totalScore >= maxScore:
@@ -163,21 +164,21 @@ class ImageExample:
  
 	# this returns a psi object
 	def psi(self, y,h, returnCanonicalPsi= False):
+		if self.params.syntheticParams:
+			result = None
+			if y == self.trueY and h == 0:
+				result = numpy.zeros((self.params.lengthW, 1))
+				result[0] = self.params.syntheticParams.strength
+			else:
+				result = numpy.random.randn(self.params.lengthW, 1)
+
+			return result
+
 		if (self.fileUUID,h) in self.psiCache.map.keys():
 			if returnCanonicalPsi:
 				return self.psiCache.get((self.fileUUID,h))
 			else:
 				return padCanonicalPsi(self.psiCache.get((self.fileUUID,h)),y,self.params)
-
-		if self.params.synthetic:
-			result = sparse.dok_matrix((2,1))
-			if y == self.trueY and h == 0:
-				result[0] = 3
-			else:
-				result[0] = random.randint(0, 1)
-				result[1] = random.randint(0, 1)
-
-			return result
 
 		try:
 			os.makedirs("/vision/u/rwitten/features/%s" % (self.fileUUID))
@@ -212,9 +213,13 @@ class ImageExample:
 	def highestScoringLV(self,w, labelY):
 		maxScore = float(-1e100)
 		bestH = -1
-		start = labelY*self.params.totalLength
-		end= (labelY+1)*self.params.totalLength
-		wlocal = w.T[0,start:end]
+		wlocal = None
+		if not self.params.syntheticParams:
+			start = labelY*self.params.totalLength
+			end= (labelY+1)*self.params.totalLength
+			wlocal = w.T[0,start:end]
+		else:
+			wlocal = w.T
 
 		for latentH in range(len(self.hlabels)):
 			psiVec = self.psi(labelY,latentH, returnCanonicalPsi=True)

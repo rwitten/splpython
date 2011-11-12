@@ -1,7 +1,7 @@
 from imageImplementation import ImageApp as App
 
 import LSSVM
-import PsiCache
+#import PsiCache #TODO: uncomment once this module exists
 import UserInput
 
 import sys
@@ -19,13 +19,20 @@ def loadTrainFile(trainFile, params):
 	print "total number of examples (including duplicates) = " + repr(params.numExamples)
 	sys.stdout.write('\n')
 	assert(params.numExamples == len(params.examples))
-	params.maxDualityGap = params.C*params.epsilon
+
+def synthesize(params):
+	params.examples = []
+	for i in range(params.numExamples):
+		params.examples.append(App.ImageExample(None, params, i))
 
 def main():
 	(params, trainFile, kernelFile) = UserInput.getUserInput()
 
-	App.loadKernelFile(kernelFile, params) 
-	loadTrainFile(trainFile, params)
+	if params.syntheticParams:
+		synthesize(params)
+	else:
+		App.loadKernelFile(kernelFile, params)
+		loadTrainFile(trainFile, params)
 
 	w = App.PsiObject(params,False)
 	LSSVM.optimize(w, params)

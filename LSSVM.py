@@ -17,7 +17,7 @@ def has_converged(w, params):
 
 def optimize(w, params):
 	init_latent_variables(w, params)
-	for iter in range(params.max_outer_iter):
+	for iter in range(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
 		w = SPLInnerLoop.optimize(w, params)
 		print("Imputing h")
