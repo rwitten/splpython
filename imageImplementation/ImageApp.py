@@ -39,6 +39,10 @@ def OneClassPsiObject(params):
 	return result
 
 def loadKernelFile(kernelFile, params):
+	if params.synthetic:
+		params.lengthW = 2
+		return
+
 	kFile = open(kernelFile, 'r')
 	params.numKernels = int(kFile.readline().strip())
 	params.ylabels = range(20)
@@ -164,6 +168,16 @@ class ImageExample:
 				return self.psiCache.get((self.fileUUID,h))
 			else:
 				return padCanonicalPsi(self.psiCache.get((self.fileUUID,h)),y,self.params)
+
+		if self.params.synthetic:
+			result = sparse.dok_matrix((2,1))
+			if y == self.trueY and h == 0:
+				result[0] = 3
+			else:
+				result[0] = random.randint(0, 1)
+				result[1] = random.randint(0, 1)
+
+			return result
 
 		try:
 			os.makedirs("/vision/u/rwitten/features/%s" % (self.fileUUID))
