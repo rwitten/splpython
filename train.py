@@ -2,12 +2,10 @@ from imageImplementation import ImageApp as App
 
 import LSSVM
 import PsiCache
+import UserInput
 
 import sys
 import scipy
-
-class Params(object):
-    pass
 
 def loadTrainFile(trainFile, params):
 	tFile = open(trainFile,'r')
@@ -24,13 +22,8 @@ def loadTrainFile(trainFile, params):
 	params.maxDualityGap = params.C*params.epsilon
 
 def main():
-	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
-	trainFile = 'train/train.newsmall_1_reducedy.txt'
+	(params, trainFile, kernelFile) = UserInput.getUserInput()
 
-	params = Params()
-	params.splParams = Params()
-	params.splParams.splMode = 'CCCP'
-	params.max_outer_iter = 2#TODO: make this user input
 	App.loadKernelFile(kernelFile, params) 
 	loadTrainFile(trainFile, params)
 
