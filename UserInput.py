@@ -3,10 +3,13 @@ import sys
 
 from Params import Params
 
-def setOptions(optdict):
-	assert('--trainFile' in optdict) #this is the only required argument (for now)
-	trainFile = optdict['--trainFile']
-	assert(len(trainFile) > 0)
+def setOptions(optdict, train_or_test):
+	assert('--dataFile' in optdict)
+	dataFile = optdict['--dataFile']
+	assert(len(dataFile) > 0)
+	assert('--modelFile' in optdict)
+	modelFile = optdict['--modelFile']
+	assert(len(modelFile) > 0)
 	params = Params()
 	params.splParams = Params()
 	params.epsilon = 0.01
@@ -15,8 +18,12 @@ def setOptions(optdict):
 	params.seed = 0
 	params.maxOuterIters = 20000
 	params.syntheticParams = None
+	params.supervised = False
 	params.numYLabels = 20
-	kernelFile = 'dssdfsdfsfsdf'
+	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
+	if '--supervised' in optdict:
+		params.supervised = optdict['--supervised']
+
 	if '--kernelFile' in optdict:
 		kernelFile = optdict['--kernelFile']
 
@@ -39,7 +46,6 @@ def setOptions(optdict):
 		params.numYLabels = int(optdict['--numYLabels'])
 
 	if '--synthetic' in optdict and int(optdict['--synthetic']):
-		print("shoe")
 		params.syntheticParams = Params()
 		params.syntheticParams.numLatents = 10
 		params.syntheticParams.strength = 3.0
@@ -57,15 +63,25 @@ def setOptions(optdict):
 
 	params.ylabels = range(params.numYLabels)
 	params.maxDualityGap = params.C * params.epsilon
-	return (params, trainFile, kernelFile)
 
-def getUserInput():
-	longOptions = ['trainFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=']
+	if train_or_test == 'test':
+		assert('--resultFile' in optdict)
+		resultFile = optdict['--resultFile']
+		assert(len(resultFile) > 0)
+		return (params, dataFile, kernelFile, modelFile, resultFile)
+	else:
+		return (params, dataFile, kernelFile, modelFile)
+
+def getUserInput(train_or_test):
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=']
+	if train_or_test == 'test':
+		longOptions.append('resultFile=')
+
 	(optlist, garbage) = getopt.getopt(sys.argv[1:], '', longOptions)
 	optdict = {}
 	for o, a in optlist:
 		assert(o not in optdict) #we don't want people setting the same option twice
 		optdict[o] = a
 
-	(params, trainFile, kernelFile) = setOptions(optdict)
-	return (params, trainFile, kernelFile)
+	arg_list = setOptions(optdict, train_or_test)
+	return arg_list

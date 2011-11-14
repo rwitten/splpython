@@ -110,7 +110,7 @@ def cuttingPlaneOptimize(w, params):
 		if margin - ((w.T * constraint)[0,0]) < float(0.0):
 			print "OUCH: " + repr(margin - ((w.T * constraint)[0,0]))
 
-		assert(margin - ((w.T * constraint)[0,0]) >= float(1e-10)) #Even this assertion isn't strong enough - NONE of the vectors that sum up to the cutting plane should get a negative number when dot-producted with w and subtracted from the appropriate delta
+		assert(margin - ((w.T * constraint)[0,0]) >= float(-1e-10)) #Even this assertion isn't strong enough - NONE of the vectors that sum up to the cutting plane should get a negative number when dot-producted with w and subtracted from the appropriate delta
 		newUB = margin - (w.T * constraint)[0,0] + 0.5 * (w.T * w)[0,0]
 
 		if (newUB < UB):

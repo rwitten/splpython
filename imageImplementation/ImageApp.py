@@ -131,13 +131,16 @@ class ImageExample:
 		return results
 
 	def fillHLabels(self, filename):
-		hfile = open(filename)
 		self.hlabels = []
-		for line in hfile:
-			bbox_coords = line.split()
-			self.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
-		self.hlabels = self.hlabels[0:100]
-		hfile.close()
+		if self.params.supervised:
+			self.hlabels.append(LatentVar(0.0, float(self.width), 0.0, float(self.height)))
+		else:
+			hfile = open(filename)
+			for line in hfile:
+				bbox_coords = line.split()
+				self.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
+
+			hfile.close()
 
 	def processFile(self, inputFileLine):
 		objects  = inputFileLine.split()
@@ -185,13 +188,13 @@ class ImageExample:
 	def psis(self):
 		if self.fileUUID in self.psiCache.map.keys():
 			return self.psiCache.get(self.fileUUID)
-
-		if not self.params.syntheticParams:
-			filepath = "/vision/u/rwitten/features/%s_%d.rlw" %(self.fileUUID, len(self.hlabels))
-			if os.path.exists(filepath):
-				result= ImageCache.loadObject(filepath)
-				self.psiCache.set(self.fileUUID,result)
-				return result
+	
+		feature_cache_dir = "/vision/u/rwitten/features"
+		filepath = feature_cache_dir + "/%s_%d.rlw"%(self.fileUUID, len(self.hlabels))
+		if os.path.exists(filepath):
+			result= ImageCache.loadObject(filepath)
+			self.psiCache.set(self.fileUUID,result)
+			return result
 
 		features = []
 		for h in self.hlabels:
@@ -207,11 +210,8 @@ class ImageExample:
 			features.append(singleResult)
 
 		result = sparse.hstack( features).T.asformat('csc')
-	
 		self.psiCache.set(self.fileUUID,result)
-
-		if not self.params.syntheticParams:
-			ImageCache.cacheObject(filepath, result)
+		ImageCache.cacheObject(filepath, result)
 
 		return result
 

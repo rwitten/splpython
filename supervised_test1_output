@@ -1,0 +1,180 @@
+%%%%total number of examples (including duplicates) = 4
+
+params.lengthW = 600020
+SSVM iteration 0
+FCP took 0.770178
+At beginning of cuttingPlaneOptimize, objective = 1.0
+/afs/cs.stanford.edu/u/rwitten/libs/mosek/6/tools/platform/linux64x86/python/2/mosek/__init__.py:3784: RuntimeWarning: Item size computed from the PEP 3118 buffer format string does not match the actual item size.
+  values_[:] = _values_tmp
+FCP took 0.536306
+FCP took 0.972022
+UB is 0.927332 and LB is 0.000071
+Total took 21.848798 sec, QP took 20.831490 sec and FMVC took 0.980788 sec
+FCP took 1.096675
+UB is 0.927332 and LB is 0.000246
+Total took 22.016068 sec, QP took 20.894587 sec and FMVC took 1.100733 sec
+FCP took 1.121674
+UB is 0.828295 and LB is 0.000424
+Total took 21.869518 sec, QP took 20.723661 sec and FMVC took 1.125706 sec
+FCP took 1.277978
+UB is 0.200145 and LB is 0.000562
+Total took 26.617232 sec, QP took 25.317139 sec and FMVC took 1.281585 sec
+FCP took 1.514104
+UB is 0.101443 and LB is 0.000833
+Total took 26.306042 sec, QP took 24.765794 sec and FMVC took 1.518491 sec
+FCP took 1.492033
+UB is 0.101443 and LB is 0.000833
+Total took 22.804541 sec, QP took 21.287850 sec and FMVC took 1.495613 sec
+FCP took 1.797642
+UB is 0.101443 and LB is 0.000833
+Total took 23.663988 sec, QP took 21.840323 sec and FMVC took 1.801873 sec
+FCP took 2.247410
+UB is 0.101443 and LB is 0.000833
+Total took 28.276410 sec, QP took 25.996069 sec and FMVC took 2.252218 sec
+FCP took 2.457717
+UB is 0.101443 and LB is 0.000833
+Total took 25.251537 sec, QP took 22.762698 sec and FMVC took 2.462441 sec
+FCP took 2.335976
+UB is 0.092484 and LB is 0.000833
+Total took 25.359013 sec, QP took 22.996619 sec and FMVC took 2.340907 sec
+FCP took 2.786502
+UB is 0.092484 and LB is 0.000841
+Total took 25.639491 sec, QP took 22.824732 sec and FMVC took 2.790807 sec
+FCP took 2.628402
+UB is 0.078124 and LB is 0.000841
+Total took 26.108118 sec, QP took 23.447910 sec and FMVC took 2.636412 sec
+FCP took 2.877476
+UB is 0.072899 and LB is 0.000841
+Total took 25.892883 sec, QP took 22.983534 sec and FMVC took 2.883423 sec
+FCP took 3.166886
+UB is 0.063249 and LB is 0.000841
+Total took 29.797140 sec, QP took 26.597651 sec and FMVC took 3.171850 sec
+FCP took 3.278900
+UB is 0.059423 and LB is 0.000841
+Total took 33.491995 sec, QP took 30.184971 sec and FMVC took 3.282555 sec
+FCP took 3.069992
+UB is 0.052704 and LB is 0.000841
+Total took 26.266947 sec, QP took 23.169257 sec and FMVC took 3.074137 sec
+FCP took 3.322174
+UB is 0.050270 and LB is 0.000841
+Total took 27.035807 sec, QP took 23.685396 sec and FMVC took 3.326434 sec
+FCP took 3.542741
+UB is 0.045534 and LB is 0.000841
+Total took 28.102399 sec, QP took 24.528911 sec and FMVC took 3.546650 sec
+FCP took 3.700874
+UB is 0.045215 and LB is 0.000841
+Total took 28.155038 sec, QP took 24.429409 sec and FMVC took 3.704540 sec
+FCP took 3.899481
+UB is 0.045215 and LB is 0.000841
+Total took 32.275480 sec, QP took 28.346764 sec and FMVC took 3.903713 sec
+FCP took 4.064926
+UB is 0.029403 and LB is 0.000841
+Total took 30.479234 sec, QP took 26.386941 sec and FMVC took 4.068698 sec
+FCP took 4.403938
+UB is 0.021489 and LB is 0.000841
+Total took 34.260300 sec, QP took 29.828153 sec and FMVC took 4.408790 sec
+FCP took 4.424929
+UB is 0.021489 and LB is 0.335642
+Total took 30.052625 sec, QP took 25.601789 sec and FMVC took 4.428804 sec
+FCP took 4.394822
+At end of cuttingPlaneOptimize, objective = 0.91572337024513917
+Imputing h
+FCP took 4.514036
+SSVM iteration 1
+FCP took 4.584506
+At beginning of cuttingPlaneOptimize, objective = 0.91572337024513917
+FCP took 4.420845
+FCP took 4.403663
+UB is 1.197301 and LB is 0.000037
+Total took 25.545053 sec, QP took 21.112714 sec and FMVC took 4.409905 sec
+FCP took 4.607683
+UB is 0.978575 and LB is 0.000252
+Total took 25.955615 sec, QP took 21.317626 sec and FMVC took 4.611658 sec
+FCP took 4.628409
+UB is 0.978575 and LB is 0.030877
+Total took 25.458615 sec, QP took 20.803280 sec and FMVC took 4.633552 sec
+FCP took 5.125820
+UB is 0.289090 and LB is 0.049713
+Total took 27.805537 sec, QP took 22.649219 sec and FMVC took 5.130164 sec
+FCP took 4.997591
+UB is 0.289090 and LB is 0.049713
+Total took 27.340255 sec, QP took 22.312279 sec and FMVC took 5.003800 sec
+FCP took 5.238207
+UB is 0.249191 and LB is 0.049713
+Total took 29.634254 sec, QP took 24.365789 sec and FMVC took 5.242704 sec
+FCP took 5.154632
+UB is 0.191009 and LB is 0.049713
+Total took 31.305229 sec, QP took 26.120304 sec and FMVC took 5.158690 sec
+FCP took 5.296575
+UB is 0.115712 and LB is 0.049713
+Total took 28.643545 sec, QP took 23.306998 sec and FMVC took 5.305502 sec
+FCP took 5.585082
+UB is 0.090150 and LB is 0.049713
+Total took 29.991140 sec, QP took 24.361195 sec and FMVC took 5.596379 sec
+FCP took 5.550709
+UB is 0.084191 and LB is 0.049713
+Total took 32.359099 sec, QP took 26.780990 sec and FMVC took 5.554246 sec
+FCP took 5.730034
+UB is 0.081096 and LB is 0.049713
+Total took 28.902348 sec, QP took 23.144707 sec and FMVC took 5.733569 sec
+FCP took 5.708999
+UB is 0.081096 and LB is 0.049713
+Total took 29.417011 sec, QP took 23.679292 sec and FMVC took 5.713446 sec
+FCP took 5.850599
+UB is 0.081096 and LB is 0.049713
+Total took 30.323905 sec, QP took 24.442421 sec and FMVC took 5.855641 sec
+FCP took 6.061955
+UB is 0.080944 and LB is 0.049713
+Total took 30.579170 sec, QP took 24.486562 sec and FMVC took 6.066730 sec
+FCP took 5.901212
+UB is 0.053875 and LB is 0.049713
+Total took 32.986604 sec, QP took 27.050426 sec and FMVC took 5.907411 sec
+FCP took 6.209956
+At end of cuttingPlaneOptimize, objective = 0.05387488692969878
+Imputing h
+FCP took 6.067637
+SSVM iteration 2
+FCP took 6.583077
+At beginning of cuttingPlaneOptimize, objective = 0.05387488692969878
+FCP took 6.511579
+FCP took 6.485167
+UB is 2.311404 and LB is 0.004605
+Total took 26.394297 sec, QP took 19.867459 sec and FMVC took 6.492642 sec
+FCP took 6.603716
+UB is 1.060579 and LB is 0.004605
+Total took 26.912112 sec, QP took 20.280159 sec and FMVC took 6.608748 sec
+FCP took 6.823262
+UB is 0.600570 and LB is 0.004605
+Total took 31.199759 sec, QP took 24.347702 sec and FMVC took 6.827604 sec
+FCP took 7.154552
+UB is 0.600570 and LB is 0.080131
+Total took 30.793200 sec, QP took 23.610478 sec and FMVC took 7.159626 sec
+FCP took 6.862416
+UB is 0.190523 and LB is 0.080131
+Total took 29.165641 sec, QP took 22.269026 sec and FMVC took 6.870024 sec
+FCP took 7.492554
+UB is 0.164399 and LB is 0.080131
+Total took 34.773777 sec, QP took 27.238677 sec and FMVC took 7.499194 sec
+FCP took 6.920577
+UB is 0.144246 and LB is 0.080131
+Total took 29.049411 sec, QP took 22.099112 sec and FMVC took 6.925662 sec
+FCP took 7.465187
+UB is 0.112421 and LB is 0.080131
+Total took 29.604017 sec, QP took 22.109846 sec and FMVC took 7.468793 sec
+FCP took 7.556016
+UB is 0.063975 and LB is 0.080131
+Total took 28.583987 sec, QP took 20.999413 sec and FMVC took 7.560432 sec
+FCP took 7.916324
+At end of cuttingPlaneOptimize, objective = 0.063974682573503361
+Imputing h
+FCP took 7.943384
+Weak training error: 0.000000
+Strong training error: 0.000000
+Traceback (most recent call last):
+  File "train.py", line 86, in <module>
+    main()
+  File "train.py", line 81, in main
+    writeModel(params, modelFile, wBest)
+  File "train.py", line 33, in writeModel
+    for i in range(lengthW - 1):
+NameError: global name 'lengthW' is not defined

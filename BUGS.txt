@@ -1,21 +1,6 @@
 Try to keep this up to date:
 
-(0) It looks like the SSVM is getting solved now.  And I can sometimes get the
-objective to go down between outer iterations.  But latent variable imputation
-doesn't seem to improve objective.  Worth looking into if this continues to be
-a problem after we run on real data.
-(1) No command line processing at all. (This should be modded out, so both
-train.py and eventually test.py can use the same command line args)
-(1a) No writing things to disk.
-(1b) No test.py (but I think after 1 and 1a this should be easy)
-(2) We should make the boundary between the API (things in the basedir) and
-things in 'implementation/' more clear, which can do simply by changing the
-includes. If this doesn't make sense to you, don't worry about it at all.
-(3) params shouldn't have access to examples because examples is mutable.
-Right?
-(4) The caching is a little bit wrong for psi - caching should only depend on
-LV and we should make the right psi vector based on what we have (agreed).
-(5) Need to make psi computation much faster (only doing once per image-LV
-pair would probably help.).
-(6) I restricted number of y's and h's considered, temporarily.
-(7) Need to eventually add in SPL.
+(0) SSVM acting weirdly (see supervised_test1_output).
+(1) Still need to write test.py (in particular, need code to compute AP
+scores).
+(2) Need to eventually add in SPL.
