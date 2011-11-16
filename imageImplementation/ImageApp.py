@@ -1,13 +1,13 @@
 import cPickle
 import copy
+from datetime import datetime
 import numpy
-import os
 from numpy import random
+import os
 import re
 from scipy import sparse
 import signal
 import sys
-import multiprocessing#.dummy as multiprocessing
 
 import ImageCache
 import ImagePsi
@@ -15,15 +15,24 @@ import BBoxComputation
 
 def delta(y1, y2):
 	if(y1==y2):
-		return 0 
+		return 0.0
 	else:
-		return  1
+		return  1.0
 
 def padCanonicalPsi(canonicalPsi, classY,  params):
+	canonicalPsi = canonicalPsi.tocoo()
 	if ( classY > 0 and classY< params.numYLabels-1):
 		before = sparse.dok_matrix( ( params.totalLength*classY,1) )
-		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )   
-		return sparse.vstack( (before, canonicalPsi,  after))
+		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )
+		start = datetime.now()
+		result = sparse.vstack( (before, canonicalPsi,  after))
+		end= datetime.now()
+#		print("took %f" % (end-start).total_seconds())
+		if (end-start).total_seconds()>1:
+			import pdb; pdb.set_trace()
+
+		return result
+		
 	elif ( classY==0):
 		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )
 		return sparse.vstack( (canonicalPsi,  after) )
@@ -100,29 +109,6 @@ class ImageExample:
 		self.psiCache = params.cache
 
 
-#	def findMVC(self,w, givenY, givenH):
-#		assert(givenY == self.trueY)
-#		assert(givenH == self.h)
-#		
-#		maxScore= float(-1e100)
-#		bestH = -1
-#		bestY = -1
-#		for labelY in self.params.ylabels:
-#			if (labelY in self.whiteList):
-#				continue
-#			(h, score, vec) = self.highestScoringLV(w,labelY)
-#			totalScore = delta(givenY, labelY) + score
-#			if totalScore >= maxScore:
-#				bestH = h
-#				bestY = labelY
-#				maxScore = totalScore
-#
-#		assert(bestH > -1)
-#		assert(bestY > -1)
-#		const = delta(givenY, bestY)
-#		vec = self.psi(givenY, givenH) - self.psi(bestY, bestH)
-#		return (const,copy.deepcopy(vec) ) 
-	
 	def findScoreAllClasses(self, w):
 		results = {}
 		for label in self.params.ylabels:
@@ -197,6 +183,8 @@ class ImageExample:
 			return result
 
 		features = []
+
+
 		for h in self.hlabels:
 			singleResult = None
 			if self.params.syntheticParams:
@@ -216,66 +204,9 @@ class ImageExample:
 		return result
 
 	def highestScoringLV(self,w, labelY):
-		start = labelY*self.params.totalLength
-		end= (labelY+1)*self.params.totalLength
-		wlocal = w[start:end,0]
-		
-		psis = self.psis()
-		scores = psis*wlocal
-		maxScore = scores.max()
-		bestH = scores.argmax()
-
-		return  (bestH, maxScore, self.psi(labelY, bestH))
-
-def init_worker():
-	return
-#	signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-class FMVCJob():
-	pass
-
-def highestScoringLVUtility(w,labelY,job):
-	start = labelY*job.totalLength
-	end= (labelY+1)*job.totalLength
-	wlocal = w[start:end,0]
-	
-	psis = job.psis
-	scores = psis*wlocal;
-	maxScore = scores.max()
-	bestH = scores.argmax()
-
-	psiVec=padCanonicalPsi((job.psis[bestH,:]).T, labelY, job)
-	return (bestH, maxScore)
-	
-def getPsi(y,h, job):
-	psi = (job.psis[h,:]).T
-	return padCanonicalPsi(psi, y, job)	 
-
-def processJob(job):
-	maxScore= float(-1e100)
-	bestH = -1
-	bestY = -1
-
-	for labelY in job.ylabels:
-		if (labelY in job.whiteList):
-			continue
-		(h, score) = highestScoringLVUtility(job.w,labelY,job)
-		totalScore = delta(job.givenY, labelY) + score
-		if totalScore >= maxScore:
-			bestH = h
-			bestY = labelY
-			maxScore = totalScore
-
-	assert(bestH > -1)
-	assert(bestY > -1)
-	const = delta(job.givenY, bestY)
-	vec = getPsi(job.givenY, job.givenH,job) - getPsi(bestY, bestH,job)
-	return (const,copy.deepcopy(vec) ) 
+		return highestScoringLVGeneral(w,labelY,self.params,self.psis())
 
 def findCuttingPlane(w, params):
-	from datetime import datetime
-	start = datetime.now()
-
 	def jobify(example):
 		job = FMVCJob()
 		job.psis = example.psis()
@@ -286,29 +217,88 @@ def findCuttingPlane(w, params):
 		job.givenH = example.h
 		job.numYLabels = example.params.numYLabels
 		job.w = w
+		job.C = params.C
+		job.fileUUID = example.fileUUID
 		return (job)
 
 
 	def sumResults(result1, result2):
 		return ( result1[0]+result2[0], result1[1]+result2[1])
 
-	p = multiprocessing.Pool(40,init_worker)
-
-	jobs = map(jobify, params.examples)
-
 	try:
-		output = map(processJob, jobs)
+		tasks = map(jobify, params.examples)
+		output = params.processQueue.map(singleFMVC, tasks)
+		#output = map(singleFMVC, tasks)
 		const,vec= reduce(sumResults, output)
 	except KeyboardInterrupt:
-		p.terminate()
-		p.join()
-	else:
-		p.close()
-		p.join()
+		print "Caught KeyboardInterrupt, terminating workers"
+		sys.exit(1)
 
-	end= datetime.now()
-	print("FCP took %f" %( (end-start).total_seconds()))
-	return (const * params.C / float(params.numExamples), vec * params.C / float(params.numExamples))
+
+	
+
+	const = const/len(params.examples)
+	vec = vec/len(params.examples)
+
+	return (const, vec)
+
+def highestScoringLVAllClasses(w,params,psis):
+	wMat = matrixifyW(w,params,psis)
+	for ylabel in job.ylabels:
+		if (labelY in job.whiteList) or labelY == job.givenY:
+			continue
+	allScores = psis*wMat
+
+def highestScoringLVGeneral(w, labelY, params, psis):
+	start = labelY*params.totalLength
+	end= (labelY+1)*params.totalLength
+	wlocal = w[start:end,0]
+	
+	
+	scores = psis*wlocal;
+	maxScore = scores.max()
+	bestH = scores.argmax()
+	
+	psiVec=padCanonicalPsi((psis[bestH,:]).T, labelY, params)
+
+	return (bestH, maxScore,psiVec)
+
+def highestScoringLVUtility(w,labelY,job):
+	return highestScoringLVGeneral(w, labelY, job, job.psis)
+		
+def getPsi(y,h, job):
+	psi = (job.psis[h,:]).T
+	return padCanonicalPsi(psi, y, job)	 
+
+def singleFMVC(job):
+	maxScore= (job.w.T*getPsi(job.givenY, job.givenH,job))[0,0]
+	bestH = job.givenH
+	bestY = job.givenY
+
+	for labelY in job.ylabels:
+		if (labelY in job.whiteList) or labelY == job.givenY:
+			continue
+		(h, score,psiVec) = highestScoringLVUtility(job.w,labelY,job)
+		totalScore = delta(job.givenY, labelY) + score
+		if totalScore >= maxScore:
+			bestH = h
+			bestY = labelY
+			maxScore = totalScore
+
+
+
+	assert(bestH > -1)
+	assert(bestY > -1)
+	const = delta(job.givenY, bestY)
+	vec = getPsi(job.givenY, job.givenH,job) - getPsi(bestY, bestH,job)
+
+	assert( (const-(job.w.T*vec)[0,0]) >= -1e-3)
+
+
+	return (const,copy.deepcopy(vec) ) 
+
+class FMVCJob():
+	pass
 
 class LatentVar:
 	def __init__(self, x_min, x_max, y_min, y_max):

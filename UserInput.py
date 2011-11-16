@@ -12,7 +12,7 @@ def setOptions(optdict, train_or_test):
 	assert(len(modelFile) > 0)
 	params = Params()
 	params.splParams = Params()
-	params.epsilon = 0.01
+	params.epsilon = .01
 	params.C = 1.0
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0
@@ -63,14 +63,17 @@ def setOptions(optdict, train_or_test):
 
 	params.ylabels = range(params.numYLabels)
 	params.maxDualityGap = params.C * params.epsilon
-
+	params.dataFile= dataFile
+	params.kernelFile = kernelFile
+	params.modelFile = modelFile
 	if train_or_test == 'test':
 		assert('--resultFile' in optdict)
 		resultFile = optdict['--resultFile']
+		params.resultFile = resultFile
 		assert(len(resultFile) > 0)
-		return (params, dataFile, kernelFile, modelFile, resultFile)
+		return params
 	else:
-		return (params, dataFile, kernelFile, modelFile)
+		return params
 
 def getUserInput(train_or_test):
 	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=']
