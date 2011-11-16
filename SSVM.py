@@ -1,7 +1,9 @@
+import copy 
 import datetime
 import mosek
 import numpy
 from scipy import sparse
+import sys
 
 from imageImplementation import ImageApp as App
 #optimization problem is
@@ -26,6 +28,9 @@ def solveQP(constraints, margins, params):
 
 	# Create a task
 	task = env.Task(0,0)
+#	task.putintparam(mosek.iparam.data_check,mosek.onoffkey.on)
+#$$	task.putintparam(mosek.iparam.intpnt_num_threads ,40)
+	task.putintparam(mosek.iparam.sim_max_num_setbacks,	1000)
 	# Attach a printer to the task
 	task.set_Stream (mosek.streamtype.log, streamprinter)
 
@@ -41,7 +46,7 @@ def solveQP(constraints, margins, params):
 		task.putcj(j, 0)
 
 	task.putbound(mosek.accmode.var,NUMVAR-1,mosek.boundkey.lo,0,1e4)
-	task.putcj(NUMVAR-1,1)
+	task.putcj(NUMVAR-1,params.C)
 
 	for i in range(NUMCON):
 		task.putbound(mosek.accmode.con,i, mosek.boundkey.lo, margins[i], numpy.inf)
@@ -56,7 +61,9 @@ def solveQP(constraints, margins, params):
 
 
 	task.putobjsense(mosek.objsense.minimize)
-	task.optimize()
+	r=task.optimize()
+	print("response code: %d" % (r))
+
 	task.solutionsummary(mosek.streamtype.msg)
 
 	xx = numpy.zeros(NUMVAR-1, float)
@@ -64,19 +71,40 @@ def solveQP(constraints, margins, params):
                         mosek.solitem.xx,
                         0,NUMVAR-1, # don't give back psi
                         xx)
+	[prosta ,solsta]=task.getsolutionstatus(mosek.soltype.itr)
 
+	yy = numpy.zeros(1, float)
+	task.getsolutionslice(mosek.soltype.itr,
+                        mosek.solitem.xx,
+                        NUMVAR-1,NUMVAR, #we want psi
+                        yy)
+
+	primalObj = task.getprimalobj(mosek.soltype.itr)
+	dualObj = task.getdualobj(mosek.soltype.itr)
+	print("mosek says primal is %f and dual is %f" % ( primalObj, dualObj))
 	wOut = numpy.mat(xx).T
-	return wOut,task.getprimalobj(mosek.soltype.itr)
+	return wOut,task.getprimalobj(mosek.soltype.itr), dualObj-primalObj
 
+def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
+	psi = 0
+	for i in range(len(margins)):
+		psiCon = margins[i]
+		for j in range(len(constraints[i][0])-1):
+			psiCon = psiCon - w[constraints[i][0][j],0]*constraints[i][1][j]
+
+		if psiCon>psi:
+			psi = psiCon 
+
+	return 0.5 * (w.T * w)[0,0] + params.C*psi
 
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
 	(margin, constraint) = App.findCuttingPlane(w, params)
-	objective += margin - ((w.T * constraint)[0,0])
-	return objective
+	objective += params.C*(margin - ((w.T * constraint)[0,0]))
+	return (objective, margin, constraint)
 
 def cuttingPlaneOptimize(w, params):
-	objective = computeObjective(w, params)
+	objective,margin, constraint = computeObjective(w, params)
 	print "At beginning of cuttingPlaneOptimize, objective = " + repr(objective)
 	constraints = []
 	margins = []
@@ -85,42 +113,52 @@ def cuttingPlaneOptimize(w, params):
 	LB = - numpy.inf
 	UB = numpy.inf
 
-	(margin, constraint) = App.findCuttingPlane(w, params)
-
+	iter = 1
 	while (UB - LB > params.maxDualityGap):
 		starttime = datetime.datetime.now()
+		
 		(xs, garbage) = constraint.nonzero()
 		xs = xs.tolist() + [params.lengthW]
 		values = constraint.data.tolist() + [1]
-		
 		constraints.append( (xs,values)) 
 		margins.append(margin)
-
 		startqp = datetime.datetime.now()	
-		(w, newLB) = solveQP(constraints, margins, params)
+		(w, newLB, dualityGap) = solveQP(constraints, margins, params)
+
+
+		
 		endqp = datetime.datetime.now()	
 
-		if(newLB > LB):
+		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:
 			LB = newLB
 		
 		startFMVC = datetime.datetime.now()	
-		(margin, constraint) = App.findCuttingPlane(w, params)
+		(newUB, margin, constraint) = computeObjective(w, params)
 		endFMVC= datetime.datetime.now()	
-		
-		if margin - ((w.T * constraint)[0,0]) < float(0.0):
-			print "OUCH: " + repr(margin - ((w.T * constraint)[0,0]))
+	
+		print("returned margin is %d" %( margin - ((w.T * constraint)[0,0])))	
+		if margin - ((w.T * constraint)[0,0]) < float(-1e-10):
+			print "OUCH: " + repr(margin + ((w.T * constraint)[0,0]))
 
-		assert(margin - ((w.T * constraint)[0,0]) >= float(-1e-10)) #Even this assertion isn't strong enough - NONE of the vectors that sum up to the cutting plane should get a negative number when dot-producted with w and subtracted from the appropriate delta
-		newUB = margin - (w.T * constraint)[0,0] + 0.5 * (w.T * w)[0,0]
+		assert(margin - ((w.T * constraint)[0,0]) >= float(-1e-10)) 
 
 		if (newUB < UB):
 			UB = newUB
 		
 		endtime= datetime.datetime.now()
 
-		print( "UB is %f and LB is %f" % ( UB, LB) )
+		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
 		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
+		iter+=1
+		sys.stdout.flush()
+#		
+#		import gc
+#		startgc = datetime.datetime.now()	
+#		gc.collect()
+#		endgc= datetime.datetime.now()
+#		import pdb; pdb.set_trace()
+#		print("gc collect took %f" % (endgc-startgc).total_seconds())
 
-	objective = computeObjective(w, params)
+	objective,margin,constraint = computeObjective(w, params)
 	print "At end of cuttingPlaneOptimize, objective = " + repr(objective)
 	return w
