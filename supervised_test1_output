@@ -1,0 +1,163 @@
+%%%Process PoolWorker-21:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+Process PoolWorker-5:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/pythoProcess PoolWorker-4:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+Process PoolWorker-8:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+Process PoolWorker-9:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+Process PoolWorker-40:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+Process PoolWorker-17:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    racquire()
+KeyboardInterrupt
+Process PoolWorker-35:
+Traceback (most recent call last):
+    racquire()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+KeyboardInterrupt
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self.run()
+ker-29:
+Traceback (most recent call last):
+    racquire()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+KeyboardInterrupt
+Process PoolWorker-14:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    racquire()
+KeyboardInterrupt
+    utils.loadDataFile(params.dataFile, params)
+  File "/afs/cs.stanford.edu/u/rwitten/projects/splpython/utils.py", line 18, in loadDataFile
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    racquire()
+KeyboardInterrupt
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+    racquire()
+KeyboardInterrupt
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+    racquire()
+KeyboardInterrupt
+    racquire()
+KeyboardInterrupt
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+    self.run()
+  File Process PoolWorker-11:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/    self.run()
+  File "/afs/cs.stanford.edu/u/rwitten/libs  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line    self.run()
+  File "/afs/cs.stan  File "/afs/cs.stanford.edu/u/    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 378, in get
+    return recv()
+KeyboardInterrupt
+n2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 3    racquire()
+racquire()
+KeyboardInterrupt
+lf._args, **self._kwargs)
+call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/prKeyboardInterrupt
+8, in _bootstrap
+    racquire()
+KeyboardInterrupt
+    racquire()
+KeyboardInterrupt
+    self._target(*self._args, **self._kwargs    File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing    racquire()
+.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/mult    self._target(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 85, in worker
+    task = get()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/queues.py", line 376, in get
+    racquire()
+KeyboardInterrupt
+    self.processFile(inputFileLine)
+  File "/afs/cs.stanford.edu/u/rwitten/projects/splpython/imageImplementation/ImageApp.py", line 146, in processFile
+    self.loadData(kernelName)
+  File "/afs/cs.stanford.edu/u/rwitten/projects/splpython/imageImplementation/ImageApp.py", line 164, in loadData
+    self.values[index].append(int(data[2])-1)
+KeyboardInterrupt
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/atexit.py", line 24, in _run_exitfuncs
+    func(*targs, **kargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 286, in _exit_function
+    _run_finalizers(0)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 261, in _run_finalizers
+    finalizer()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 200, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 453, in _terminate_pool
+    cls._help_stuff_finish(inqueue, task_handler, len(pool))
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 438, in _help_stuff_finish
+    inqueue._rlock.acquire()
+KeyboardInterrupt
+Error in sys.exitfunc:
+Traceback (most recent call last):
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/atexit.py", line 24, in _run_exitfuncs
+    func(*targs, **kargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 286, in _exit_function
+    _run_finalizers(0)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 261, in _run_finalizers
+    finalizer()
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/util.py", line 200, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 453, in _terminate_pool
+    cls._help_stuff_finish(inqueue, task_handler, len(pool))
+  File "/afs/cs.stanford.edu/u/rwitten/libs/epd/lib/python2.7/multiprocessing/pool.py", line 438, in _help_stuff_finish
+    inqueue._rlock.acquire()
+KeyboardInterrupt

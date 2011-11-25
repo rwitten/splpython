@@ -1,5 +1,6 @@
 import copy 
 import datetime
+import math
 import mosek
 import numpy
 from scipy import sparse
@@ -17,48 +18,16 @@ def streamprinter(text):
 
 
 #we want that [w \psi]^t [f_i 1] >= \delta_i
-def solveQP(constraints, margins, params):
+def solveQP(constraints, margins, params,env,task):
 	NUMVAR = params.lengthW+1 #remember psi
 	NUMCON = len(margins)
 
-	# Make a MOSEK environment
-	env = mosek.Env ()
-	# Attach a printer to the environment
-	env.set_Stream (mosek.streamtype.log, streamprinter)
 
-	# Create a task
-	task = env.Task(0,0)
-#	task.putintparam(mosek.iparam.data_check,mosek.onoffkey.on)
-#$$	task.putintparam(mosek.iparam.intpnt_num_threads ,40)
-	task.putintparam(mosek.iparam.sim_max_num_setbacks,	1000)
-	# Attach a printer to the task
-	task.set_Stream (mosek.streamtype.log, streamprinter)
-
-	task.putmaxnumvar(NUMVAR)
-	task.putmaxnumcon(NUMCON)
-
-	task.append(mosek.accmode.con,NUMCON) #NUMCON empty constraints
-
-	task.append(mosek.accmode.var,NUMVAR) #NUMVAR variables fixed at zero
-	for j in range(NUMVAR-1):
-		#task.putbound(mosek.accmode.var,j,mosek.boundkey.fr,-numpy.inf,numpy.inf)
-		task.putbound(mosek.accmode.var,j,mosek.boundkey.ra,-1e4,1e4)
-		task.putcj(j, 0)
-
-	task.putbound(mosek.accmode.var,NUMVAR-1,mosek.boundkey.lo,0,1e4)
-	task.putcj(NUMVAR-1,params.C)
-
-	for i in range(NUMCON):
-		task.putbound(mosek.accmode.con,i, mosek.boundkey.lo, margins[i], numpy.inf)
-		task.putavec(mosek.accmode.con,i, constraints[i][0],constraints[i][1]) 
-
-
-	qsubi = range(0, NUMVAR-1)	
-	qsubj = range(0, NUMVAR-1)
-	qval = [1]* (NUMVAR-1)
-
-	task.putqobj(qsubi, qsubj, qval)
-
+	task.append(mosek.accmode.con,1) #1 more constraint
+	
+	i = NUMCON-1
+	task.putbound(mosek.accmode.con,i, mosek.boundkey.lo, margins[i], numpy.inf)
+	task.putavec(mosek.accmode.con,i, constraints[i][0],constraints[i][1]) 
 
 	task.putobjsense(mosek.objsense.minimize)
 	r=task.optimize()
@@ -103,7 +72,38 @@ def computeObjective(w, params):
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint)
 
+def initializeMosek(params):
+	env = mosek.Env ()
+	task = env.Task(0,0)
+	NUMVAR = params.lengthW+1
+	task.append(mosek.accmode.var,NUMVAR)
+	for j in range(NUMVAR-1):
+		task.putbound(mosek.accmode.var,j,mosek.boundkey.ra,-1e4,1e4)
+		task.putcj(j, 0)
+	qsubi = range(0, NUMVAR-1)	
+	qsubj = range(0, NUMVAR-1)
+	qval = [1]* (NUMVAR-1)
+	task.putbound(mosek.accmode.var,NUMVAR-1,mosek.boundkey.lo,0,1e4)
+	task.putcj(NUMVAR-1,params.C)
+
+	task.putqobj(qsubi, qsubj, qval)
+	
+	# Attach a printer to the environment
+	env.set_Stream (mosek.streamtype.log, streamprinter)
+
+	# Tricks for the task
+#	task.putintparam(mosek.iparam.data_check,mosek.onoffkey.on)
+#	task.putintparam(mosek.iparam.intpnt_num_threads ,40)
+	task.putintparam(mosek.iparam.sim_max_num_setbacks,	1000)
+	# Attach a printer to the task
+	task.set_Stream (mosek.streamtype.log, streamprinter)
+
+	task.putmaxnumvar(NUMVAR)
+	
+	return env, task
 def cuttingPlaneOptimize(w, params):
+	env,task = initializeMosek(params)
+	
 	objective,margin, constraint = computeObjective(w, params)
 	print "At beginning of cuttingPlaneOptimize, objective = " + repr(objective)
 	constraints = []
@@ -123,7 +123,7 @@ def cuttingPlaneOptimize(w, params):
 		constraints.append( (xs,values)) 
 		margins.append(margin)
 		startqp = datetime.datetime.now()	
-		(w, newLB, dualityGap) = solveQP(constraints, margins, params)
+		(w, newLB, dualityGap) = solveQP(constraints, margins, params,env,task)
 
 
 		
@@ -151,7 +151,7 @@ def cuttingPlaneOptimize(w, params):
 		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 		iter+=1
 		sys.stdout.flush()
-#		
+
 #		import gc
 #		startgc = datetime.datetime.now()	
 #		gc.collect()

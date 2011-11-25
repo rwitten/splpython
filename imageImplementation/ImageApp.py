@@ -227,8 +227,8 @@ def findCuttingPlane(w, params):
 
 	try:
 		tasks = map(jobify, params.examples)
-		output = params.processQueue.map(singleFMVC, tasks)
-		#output = map(singleFMVC, tasks)
+		#output = params.processQueue.map(singleFMVC, tasks)
+		output = map(singleFMVC, tasks)
 		const,vec= reduce(sumResults, output)
 	except KeyboardInterrupt:
 		print "Caught KeyboardInterrupt, terminating workers"
