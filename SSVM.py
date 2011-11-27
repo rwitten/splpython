@@ -7,7 +7,7 @@ from scipy import sparse
 import sys
 
 from imageImplementation import CommonApp
-from imageImplementation import ImageApp as App
+
 #optimization problem is
 # minimize .5 |w|_2^2 + \frac{C}{n} \sum_{i=1}^n \Psi_i
 # (which we solve in the one slack formulation
