@@ -9,7 +9,6 @@ from scipy import sparse
 import sys
 
 import CommonApp
-import ImageCache
 import ImagePsi
 import PsiCache
 

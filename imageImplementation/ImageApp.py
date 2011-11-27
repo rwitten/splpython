@@ -11,7 +11,6 @@ import sys
 
 import BBoxComputation
 import CommonApp
-import ImageCache
 import ImagePsi
 import PsiCache
 
@@ -45,7 +44,7 @@ class ImageExample:
 			self.hlabels = self.hlabels[:100]
 
 	def processFile(self, inputFileLine):
-		print("analyzing " + inputFileLine)
+		sys.stdout.write("analyzing " + inputFileLine)
 		objects  = inputFileLine.split()
 		self.fileUUID= objects[0]
 		self.width = objects[2]

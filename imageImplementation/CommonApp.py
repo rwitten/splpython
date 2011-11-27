@@ -9,7 +9,7 @@ from scipy import sparse
 import signal
 import sys
 
-import ImageCache
+import CacheObj
 import ImagePsi
 
 #This is where we put stuff that's common to all applications.
@@ -28,7 +28,6 @@ def padCanonicalPsi(canonicalPsi, classY,  params):
 		start = datetime.now()
 		result = sparse.vstack( (before, canonicalPsi,  after))
 		end= datetime.now()
-#		print("took %f" % (end-start).total_seconds())
 		if (end-start).total_seconds()>1:
 			import pdb; pdb.set_trace()
 
@@ -46,8 +45,6 @@ def PsiObject(params, isFeatureVec):
 	print "params.lengthW = " + repr(params.lengthW)
 	if isFeatureVec:
 		po = sparse.dok_matrix( ( params.lengthW,1 ) )
-#		for j in range(len(params.ylabels)):
-#			po[j * params.totalLength, 0] = 1
 	else:
 		po = numpy.mat(numpy.zeros( ( params.lengthW,1 ) ))
 
@@ -153,7 +150,7 @@ class FMVCJob():
 	pass
 
 def getFilepath(example):
-	feature_cache_dir = "/vision/u/rwitten/kevin_features"
+	feature_cache_dir = "/vision/u/rwitten/features"
 	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
@@ -163,7 +160,7 @@ def tryGetFromCache(example):
 
 	filepath = getFilepath(example)
 	if os.path.exists(filepath):
-		result = ImageCache.loadObject(filepath)
+		result = CacheObj.loadObject(filepath)
 		example.psiCache.set(example.fileUUID,result)
 		return (result, True)
 
@@ -172,4 +169,4 @@ def tryGetFromCache(example):
 def putInCache(example, result):
 	filepath = getFilepath(example)
 	example.psiCache.set(example.fileUUID, result)
-	ImageCache.cacheObject(filepath, result)
+	CacheObj.cacheObject(filepath, result)
