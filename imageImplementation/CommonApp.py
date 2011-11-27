@@ -153,7 +153,7 @@ class FMVCJob():
 	pass
 
 def getFilepath(example):
-	feature_cache_dir = "/afs/cs.stanford.edu/u/kjmiller/scratch/autumn2011/features"
+	feature_cache_dir = "/vision/u/rwitten/kevin_features"
 	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
