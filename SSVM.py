@@ -6,7 +6,8 @@ import numpy
 from scipy import sparse
 import sys
 
-from imageImplementation import ImageApp as App
+from imageImplementation import CommonApp
+
 #optimization problem is
 # minimize .5 |w|_2^2 + \frac{C}{n} \sum_{i=1}^n \Psi_i
 # (which we solve in the one slack formulation
@@ -68,7 +69,7 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
-	(margin, constraint) = App.findCuttingPlane(w, params)
+	(margin, constraint) = CommonApp.findCuttingPlane(w, params)
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint)
 

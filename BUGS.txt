@@ -1,6 +1,9 @@
 Try to keep this up to date:
 
-(0) SSVM acting weirdly (see supervised_test1_output).
-(1) Still need to write test.py (in particular, need code to compute AP
-scores).
-(2) Need to eventually add in SPL.
+(0) Need constraint-dropping.
+(1) Need AP scores.
+(2) Need SPL, SPL+, SPL++.
+(3) Need more graceful handling of user input.
+(4) Need more elegant way to decide which application to use (currently ExampleLoader.py does this with an if-block; maybe could use something like exec("import " + var + " as App"), where var is set by the user input).
+(5) Maybe could move more code from ImageApp.py and SyntheticApp.py to CommonApp.py.
+(6) ImageApp.py, SyntheticApp.py, and CommonApp.py should be in separate folders.

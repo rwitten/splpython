@@ -1,28 +1,17 @@
 from imageImplementation import CacheObj
-from imageImplementation import ImageApp as App
-from imageImplementation import PsiCache
+from imageImplementation import CommonApp
+import ExampleLoader
 import LSSVM
+import Performance
 import UserInput
-import utils
-
-import os
-import signal
 
 def main():
-	params = UserInput.getUserInput('train')
-	
-	if params.syntheticParams:
-		utils.synthesizeExamples(params)
-	else:
-		App.loadKernelFile(params.kernelFile, params)
-		utils.loadDataFile(params.dataFile, params)
-
-	w = App.PsiObject(params,False)
+	params = UserInput.getUserInput('train')	
+	ExampleLoader.loadExamples(params)
+	w = CommonApp.PsiObject(params,False)
 	w= LSSVM.optimize(w, params)
-
 	CacheObj.cacheObject(params.modelFile,w)
-
-	utils.printStrongAndWeakTrainError(params, w)
+	Performance.printStrongAndWeakTrainError(params, w)
 
 if __name__== "__main__":
 	main()
