@@ -9,7 +9,7 @@ from scipy import sparse
 import signal
 import sys
 
-import ImageCache
+import CacheObj
 import ImagePsi
 
 #This is where we put stuff that's common to all applications.
@@ -168,7 +168,7 @@ def tryGetFromCache(example):
 
 	filepath = getFilepath(example)
 	if os.path.exists(filepath):
-		result = ImageCache.loadObject(filepath)
+		result = CacheObj.loadObject(filepath)
 		example.psiCache.set(example.fileUUID,result)
 		return (result, True)
 
@@ -177,4 +177,4 @@ def tryGetFromCache(example):
 def putInCache(example, result):
 	filepath = getFilepath(example)
 	example.psiCache.set(example.fileUUID, result)
-	ImageCache.cacheObject(filepath, result)
+	CacheObj.cacheObject(filepath, result)

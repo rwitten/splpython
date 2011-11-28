@@ -10,7 +10,8 @@ def setPsiEntry(featureVec, params, labelY, kernel, bboxesContainingDescriptor, 
 			if bboxesContainingDescriptor[i]:
 				spmIndices.append(i)
 
-		assert(len(spmIndices) == 2)
+		if not (len(spmIndices) == 2):
+			print("Weirdness with spmIndices")
 	else:
 		spmIndices.append(5)
 
