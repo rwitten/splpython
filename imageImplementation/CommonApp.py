@@ -61,7 +61,9 @@ def OneClassPsiObject(params):
 def findCuttingPlane(w, params):
 	def jobify(example):
 		job = FMVCJob()
+		#print("starting %d\n"%(example.id))
 		job.psis = example.psis()
+		#print("ending %d\n"%(example.id))
 		job.whiteList =  example.whiteList
 		job.ylabels = example.params.ylabels
 		job.totalLength = example.params.totalLength
@@ -79,8 +81,8 @@ def findCuttingPlane(w, params):
 
 	try:
 		tasks = map(jobify, params.examples)
-		#output = params.processQueue.map(singleFMVC, tasks)
-		output = map(singleFMVC, tasks)
+		output = params.processQueue.map(singleFMVC, tasks)
+		#output = map(singleFMVC, tasks)
 		const,vec= reduce(sumResults, output)
 	except KeyboardInterrupt:
 		print "Caught KeyboardInterrupt, terminating workers"
@@ -127,6 +129,8 @@ def singleFMVC(job):
 	bestH = job.givenH
 	bestY = job.givenY
 
+	#print("starting singleFMVC()\n")
+
 	for labelY in job.ylabels:
 		if (labelY in job.whiteList) or labelY == job.givenY:
 			continue
@@ -137,6 +141,7 @@ def singleFMVC(job):
 			bestY = labelY
 			maxScore = totalScore
 
+	#print("ending singleFMVC()\n")
 
 
 	assert(bestH > -1)

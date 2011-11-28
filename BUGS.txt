@@ -1,6 +1,6 @@
 Try to keep this up to date:
 
-(0) Need constraint-dropping.
+(0) May need to tune constraint-dropping.
 (1) Need AP scores.
 (2) Need SPL, SPL+, SPL++.
 (3) Need more graceful handling of user input.
