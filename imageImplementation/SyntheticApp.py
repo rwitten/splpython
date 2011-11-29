@@ -70,6 +70,7 @@ def SynthePsize(params, trueY, h):
 	return result
 
 def loadExamples(params):
+        params.processQueue = multiprocessing.Pool(40)
 	params.cache = PsiCache.PsiCache()
 	params.examples = []
 	for i in range(params.numExamples):

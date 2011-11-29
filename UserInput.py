@@ -20,7 +20,15 @@ def setOptions(optdict, train_or_test):
 	params.syntheticParams = None
 	params.supervised = False
 	params.numYLabels = 20
+	params.maxPsiGap = 0.00001
+	params.maxTimeIdle = 10
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
+	if '--maxPsiGap' in optdict:
+		params.maxPsiGap = float(optdict['--maxPsiGap'])
+
+	if '--maxTimeIdle' in optdict:
+		params.maxTimeIdle = int(optdict['--maxTimeIdle'])
+
 	if '--supervised' in optdict:
 		params.supervised = optdict['--supervised']
 
@@ -76,7 +84,7 @@ def setOptions(optdict, train_or_test):
 		return params
 
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=']
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 

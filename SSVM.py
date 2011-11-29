@@ -67,6 +67,37 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 
 	return 0.5 * (w.T * w)[0,0] + params.C*psi
 
+def dropConstraints(w, constraintList, margins, idle, constraints, params):
+	hitlist = []
+	psiConMax = - numpy.inf
+	psiCons = numpy.zeros(len(idle), float)
+	numActive = 0
+	for i in range(len(idle)):
+		psiCons[i] = margins[i] - (w.T * constraintList[i])[0, 0]
+		if psiCons[i] > psiConMax:
+			psiConMax = psiCons[i]
+
+	for i in range(len(idle)):
+		if psiConMax - psiCons[i] >= params.maxPsiGap * params.C: #My reasoning is that as C gets bigger, w gets bigger, and as w gets bigger, the gaps get bigger
+			idle[i] += 1
+			if idle[i] >= params.maxTimeIdle:
+				hitlist.append(i)
+
+		else:
+			numActive += 1
+			idle[i] = 0
+	
+	print("%d active constraints\n"%(numActive))
+	hitlist.reverse()
+	for j in range(len(hitlist)):
+		i = hitlist[j]
+		del idle[i]
+		del margins[i]
+		del constraintList[i]
+		del constraints[i]
+
+	print("Dropped %d constraints\n"%(len(hitlist)))
+
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
 	print("w is" + repr(w.shape) )
@@ -104,12 +135,15 @@ def initializeMosek(params):
 	task.putmaxnumvar(NUMVAR)
 	
 	return env, task
+
 def cuttingPlaneOptimize(w, params):
 	env,task = initializeMosek(params)
 	
 	objective,margin, constraint = computeObjective(w, params)
 	print "At beginning of cuttingPlaneOptimize, objective = " + repr(objective)
 	constraints = []
+	constraintList = []
+	idle = []
 	margins = []
 
 	notConverged = 1
@@ -119,7 +153,8 @@ def cuttingPlaneOptimize(w, params):
 	iter = 1
 	while (UB - LB > params.maxDualityGap):
 		starttime = datetime.datetime.now()
-		
+		idle.append(0)
+		constraintList.append(constraint)
 		(xs, garbage) = constraint.nonzero()
 		xs = xs.tolist() + [params.lengthW]
 		values = constraint.data.tolist() + [1]
@@ -127,10 +162,12 @@ def cuttingPlaneOptimize(w, params):
 		margins.append(margin)
 		startqp = datetime.datetime.now()	
 		(w, newLB, dualityGap) = solveQP(constraints, margins, params,env,task)
-
-
 		
 		endqp = datetime.datetime.now()	
+
+		
+		dropConstraints(w, constraintList, margins, idle, constraints, params)
+
 
 		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:
 			LB = newLB
