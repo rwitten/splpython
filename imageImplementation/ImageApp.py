@@ -146,7 +146,6 @@ def loadDataFile(params):
 	params.numExamples= int(tFile.readline())
 	params.examples = []
 	params.cache= PsiCache.PsiCache()
-	params.processQueue = multiprocessing.Pool(40)
 
 	for line in tFile:
 		sys.stdout.write("%")

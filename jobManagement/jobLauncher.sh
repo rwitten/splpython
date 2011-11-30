@@ -1,17 +1,19 @@
 for C in 1
 do
-	for foldnum in 1 2 3 4 5 
+	for foldnum in 1 
 	do
-		for class in 'chunk'
+		for class in 'newsmall'
 		do
 			basedir=`./name.sh $C $foldnum $class`
 			scriptname=jobs/${basedir}.sh
 
 			CHANGE_DIR="cd $SPL_BASE_DIR"
-			TRAIN="$EPYTHON train.py --C=${C} --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
-			TEST_ON_TRAIN="$EPYTHON test.py --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
 
-			TEST_ON_TEST="$EPYTHON test.py --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
+
+			TRAIN="$EPYTHON train.py --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
+			TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
+
+			TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
 
 			command_starttimestamp="date > ./output/${basedir}.starttime"
 			command_endtimestamp="date > ./output/${basedir}.endtime" 
@@ -36,8 +38,8 @@ do
 			echo $command_time_passed >> $scriptname
 			chmod +x $scriptname
 
-			echo "Posting $scriptname"
-			qsub -q daglab $scriptname
+			#echo "Posting $scriptname"
+			#qsub -q daglab $scriptname
 		done
 	done
 done

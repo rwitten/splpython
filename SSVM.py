@@ -32,8 +32,6 @@ def solveQP(constraints, margins, params,env,task):
 
 	task.putobjsense(mosek.objsense.minimize)
 	r=task.optimize()
-	print("response code: %d" % (r))
-
 	task.solutionsummary(mosek.streamtype.msg)
 
 	xx = numpy.zeros(NUMVAR-1, float)
@@ -51,7 +49,10 @@ def solveQP(constraints, margins, params,env,task):
 
 	primalObj = task.getprimalobj(mosek.soltype.itr)
 	dualObj = task.getdualobj(mosek.soltype.itr)
-	print("mosek says primal is %f and dual is %f" % ( primalObj, dualObj))
+
+	if abs(dualObj - primalObj)> params.maxDualityGap:
+		print("mosek says primal is %f and dual is %f response code %d" % ( primalObj, dualObj, r))
+
 	wOut = numpy.mat(xx).T
 	return wOut,task.getprimalobj(mosek.soltype.itr), dualObj-primalObj
 
@@ -87,7 +88,6 @@ def dropConstraints(w, constraintList, margins, idle, constraints, params):
 			numActive += 1
 			idle[i] = 0
 	
-	print("%d active constraints\n"%(numActive))
 	hitlist.reverse()
 	for j in range(len(hitlist)):
 		i = hitlist[j]
@@ -96,11 +96,11 @@ def dropConstraints(w, constraintList, margins, idle, constraints, params):
 		del constraintList[i]
 		del constraints[i]
 
-	print("Dropped %d constraints\n"%(len(hitlist)))
+	print("Dropped %d constraints leaving %d active out of %d total\n"%(len(hitlist), numActive, len(constraints)))
 
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
-	print("w is" + repr(w.shape) )
+	#print("w is" + repr(w.shape) )
 	
 	(margin, constraint) = CommonApp.findCuttingPlane(w, params)
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
@@ -136,11 +136,11 @@ def initializeMosek(params):
 	
 	return env, task
 
-def cuttingPlaneOptimize(w, params):
+def cuttingPlaneOptimize(w, params, outerIter):
 	env,task = initializeMosek(params)
 	
 	objective,margin, constraint = computeObjective(w, params)
-	print "At beginning of cuttingPlaneOptimize, objective = " + repr(objective)
+	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
 	constraints = []
 	constraintList = []
 	idle = []
@@ -176,7 +176,6 @@ def cuttingPlaneOptimize(w, params):
 		(newUB, margin, constraint) = computeObjective(w, params)
 		endFMVC= datetime.datetime.now()	
 	
-		print("returned margin is %d" %( margin - ((w.T * constraint)[0,0])))	
 		if margin - ((w.T * constraint)[0,0]) < float(-1e-10):
 			print "OUCH: " + repr(margin + ((w.T * constraint)[0,0]))
 

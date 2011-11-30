@@ -1,4 +1,5 @@
 import getopt
+import multiprocessing
 import sys
 
 from Params import Params
@@ -10,18 +11,19 @@ def setOptions(optdict, train_or_test):
 	assert('--modelFile' in optdict)
 	modelFile = optdict['--modelFile']
 	assert(len(modelFile) > 0)
+	
 	params = Params()
 	params.splParams = Params()
-	params.epsilon = .01
+	params.epsilon = .1
 	params.C = 1.0
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0
 	params.maxOuterIters = 20000
 	params.syntheticParams = None
 	params.supervised = False
-	params.numYLabels = 20
+	params.numYLabels =20 
 	params.maxPsiGap = 0.00001
-	params.maxTimeIdle = 10
+	params.maxTimeIdle = 100
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
 	if '--maxPsiGap' in optdict:
 		params.maxPsiGap = float(optdict['--maxPsiGap'])
@@ -55,9 +57,11 @@ def setOptions(optdict, train_or_test):
 
 	if '--synthetic' in optdict and int(optdict['--synthetic']):
 		params.syntheticParams = Params()
-		params.syntheticParams.numLatents = 10
-		params.syntheticParams.strength = 3.0
-		params.numExamples = 10
+		params.syntheticParams.numLatents = 5
+		params.syntheticParams.strength = 1000.0
+		params.numYLabels =3
+		params.maxPsiGap = 0.00001
+		params.numExamples = 30
 		params.totalLength = params.numYLabels + 1
 		params.lengthW = params.numYLabels * params.totalLength
 		if '--syntheticNumLatents' in optdict:
@@ -68,6 +72,9 @@ def setOptions(optdict, train_or_test):
 
 		if '--syntheticStrength' in optdict:
 			params.syntheticParams.strength = float(optdict['--syntheticStrength'])
+
+	assert('--scratchFile' in optdict)
+	params.scratchFile = optdict['--scratchFile']
 
 	params.ylabels = range(params.numYLabels)
 	params.maxDualityGap = params.C * params.epsilon
@@ -81,10 +88,13 @@ def setOptions(optdict, train_or_test):
 		assert(len(resultFile) > 0)
 		return params
 	else:
+		assert(train_or_test =='train')
+		params.processQueue = multiprocessing.Pool(40)
 		return params
 
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=']
+
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 

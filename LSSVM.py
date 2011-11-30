@@ -4,18 +4,11 @@ from scipy import linalg
 import sys
 import random
 
+
 import HImputation
+from imageImplementation import CacheObj
 import SPLInnerLoop
 import SSVM
-
-def writeModel(params, modelFile, w):
-	mf = open(modelFile, "w")
-	mf.write("%d "%(params.lengthW))
-	for i in range(params.lengthW - 1):
-		mf.write("%lf "%(w[i, 0]))
-
-	mf.write("%lf"%(w[params.lengthW - 1, 0]))
-	mf.close()
 
 def initLatentVariables(w, params):
 	for i in range(len(params.examples)):
@@ -29,22 +22,31 @@ def checkConvergence(w, params, curBestObj, wBest):
 	if obj < curBestObj:
 		wBest = w
 		
-
 	return (obj >= (curBestObj - params.maxDualityGap), min([obj, curBestObj]), wBest)
 
 def optimize(w, params):
 	bestObj = numpy.inf
 	wBest = w
 	initLatentVariables(w, params)
-	for iter in range(params.maxOuterIters):
+	for iter in xrange(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
-		w = SPLInnerLoop.optimize(w, params)
+		w = SPLInnerLoop.optimize(w, params,iter)
 		print("Imputing h")
 		HImputation.impute(w, params) #this may interact with SPL at some point
 		(converged, bestObj, wBest) = checkConvergence(w, params, bestObj, wBest)
-		if converged or params.supervised:
+		if converged:
+			print("Breaking because of convergence")
 			break
-		writeModel(params, params.modelFile + str(iter), w)
+		elif params.supervised:
+			print("Only one run because we are in supervised mode")
+			break
+		worldFile = params.scratchFile + ".worldState."+str(iter)
+		processQueue = params.processQueue
+		params.processQueue = 0
+		CacheObj.cacheObject( worldFile, (w, params))
+		params.processQueue = processQueue
+		
+		CacheObj.cacheObject(params.modelFile + "."+str(iter), w)
 		
 
 	return wBest

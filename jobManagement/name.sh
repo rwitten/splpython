@@ -5,5 +5,5 @@ foldnum=$2
 class=$3
 
 
-echo CCCP_C${C}_${class}_${foldnum}_class
+echo CCCP_C${C}_${class}_${foldnum}
 
