@@ -40,11 +40,6 @@ def optimize(w, params):
 		elif params.supervised:
 			print("Only one run because we are in supervised mode")
 			break
-		worldFile = params.scratchFile + ".worldState."+str(iter)
-		processQueue = params.processQueue
-		params.processQueue = 0
-		CacheObj.cacheObject( worldFile, (w, params))
-		params.processQueue = processQueue
 		
 		CacheObj.cacheObject(params.modelFile + "."+str(iter), w)
 		

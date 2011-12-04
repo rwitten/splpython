@@ -37,7 +37,7 @@ class ImageExample:
 			hfile = open(filename)
 			for line in hfile:
 				bbox_coords = line.split()
-				self.hlabels.append(LatentVar(bbox_coords[0], bbox_coords[2], bbox_coords[1], bbox_coords[3]))
+				self.hlabels.append(LatentVar(int(bbox_coords[0]), int(bbox_coords[2]), int(bbox_coords[1]), int(bbox_coords[3])))
 
 			hfile.close()
 
@@ -93,6 +93,7 @@ class ImageExample:
 			return result
 
 		features = []
+
 		for h in self.hlabels:
 			singleResult = CommonApp.OneClassPsiObject(self.params)
 			for kernelNum in range(self.params.numKernels):

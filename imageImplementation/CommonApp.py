@@ -28,8 +28,6 @@ def padCanonicalPsi(canonicalPsi, classY,  params):
 		start = datetime.now()
 		result = sparse.vstack( (before, canonicalPsi,  after))
 		end= datetime.now()
-		if (end-start).total_seconds()>1:
-			import pdb; pdb.set_trace()
 
 		return result
 		

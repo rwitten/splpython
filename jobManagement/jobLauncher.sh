@@ -1,8 +1,8 @@
-for C in 1
+for C in 1 10 100
 do
-	for foldnum in 1 
+	for foldnum in 1
 	do
-		for class in 'newsmall'
+		for class in 'all'
 		do
 			basedir=`./name.sh $C $foldnum $class`
 			scriptname=jobs/${basedir}.sh
@@ -38,8 +38,8 @@ do
 			echo $command_time_passed >> $scriptname
 			chmod +x $scriptname
 
-			#echo "Posting $scriptname"
-			#qsub -q daglab $scriptname
+			echo "Posting $scriptname"
+			qsub -q daglab $scriptname
 		done
 	done
 done
