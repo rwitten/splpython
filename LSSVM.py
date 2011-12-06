@@ -16,24 +16,24 @@ def initLatentVariables(w, params):
 		if params.supervised:
 			assert(params.examples[i].h == 0)
 
-def checkConvergence(w, params, curBestObj, wBest):
+def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
 	obj,margin,constraint = SSVM.computeObjective(w, params)
 
 	if obj < curBestObj:
 		wBest = w
 		
-	return (obj >= (curBestObj - params.maxDualityGap), min([obj, curBestObj]), wBest)
+	return (obj >= (curBestObj - params.maxDualityGap) and globalSPLVars.fraction >= 1.0, min([obj, curBestObj]), wBest)
 
-def optimize(w, params):
+def optimize(w, globalSPLVars, params):
 	bestObj = numpy.inf
 	wBest = w
 	initLatentVariables(w, params)
 	for iter in xrange(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
-		w = SPLInnerLoop.optimize(w, params,iter)
+		w = SPLInnerLoop.optimize(w, globalSPLVars, params, iter)
 		print("Imputing h")
 		HImputation.impute(w, params) #this may interact with SPL at some point
-		(converged, bestObj, wBest) = checkConvergence(w, params, bestObj, wBest)
+		(converged, bestObj, wBest) = checkConvergence(w, globalSPLVars, params, bestObj, wBest)
 		if converged:
 			print("Breaking because of convergence")
 			break

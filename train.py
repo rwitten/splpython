@@ -4,12 +4,17 @@ import ExampleLoader
 import LSSVM
 import Performance
 import UserInput
+import SPLSelector
 
 def main():
 	params = UserInput.getUserInput('train')	
 	ExampleLoader.loadExamples(params)
 	w = CommonApp.PsiObject(params,False)
-	w= LSSVM.optimize(w, params)
+	globalSPLVars = SPLSelector.SPLVars()
+	if params.splParams.splMode != 'CCCP':
+		SPLSelector.setupSPL(params.examples, params)
+
+	w = LSSVM.optimize(w, globalSPLVars, params)
 	CacheObj.cacheObject(params.modelFile,w)
 	Performance.printStrongAndWeakTrainError(params, w)
 

@@ -53,23 +53,27 @@ def OneClassPsiObject(params):
 	result[0,0] = 1
 	return result
 
+def createFMVCJob(example, w, params):
+	job = FMVCJob()
+	#print("starting %d\n"%(example.id))
+	job.psis = example.psis()
+	job.localSPLVars = example.localSPLVars
+	#print("ending %d\n"%(example.id))
+	job.whiteList =  example.whiteList
+	job.ylabels = example.params.ylabels
+	job.totalLength = example.params.totalLength
+	job.givenY= example.trueY
+	job.givenH = example.h
+	job.numYLabels = example.params.numYLabels
+	job.w = w
+	job.C = params.C
+	job.fileUUID = example.fileUUID
+	return (job)
+
 def findCuttingPlane(w, params):
 	def jobify(example):
-		job = FMVCJob()
-		#print("starting %d\n"%(example.id))
-		job.psis = example.psis()
-		#print("ending %d\n"%(example.id))
-		job.whiteList =  example.whiteList
-		job.ylabels = example.params.ylabels
-		job.totalLength = example.params.totalLength
-		job.givenY= example.trueY
-		job.givenH = example.h
-		job.numYLabels = example.params.numYLabels
-		job.w = w
-		job.C = params.C
-		job.fileUUID = example.fileUUID
+		job = createFMVCJob(example, w, params)
 		return (job)
-
 
 	def sumResults(result1, result2):
 		return ( result1[0]+result2[0], result1[1]+result2[1])
@@ -103,7 +107,6 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 	end= (labelY+1)*params.totalLength
 	wlocal = w[start:end,0]
 	
-	
 	scores = psis*wlocal;
 	maxScore = scores.max()
 	bestH = scores.argmax()
@@ -112,48 +115,72 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 
 	return (bestH, maxScore,psiVec)
 
-def highestScoringLVUtility(w,labelY,job):
-	return highestScoringLVGeneral(w, labelY, job, job.psis)
+def highestScoringLVUtility(w, labelY, job, splMat):
+	modifiedPsis = job.psis * splMat
+	return highestScoringLVGeneral(w, labelY, job.params, modifiedPsis)
 		
-def getPsi(y,h, job):
-	psi = (job.psis[h,:]).T
-	return padCanonicalPsi(psi, y, job)	 
+def getPsi(y,h, job, splMat):
+	psi = splMat * (job.psis[h,:]).T
+	return padCanonicalPsi(psi, y, job)
+
+def getDeltaScale(selectionVec):
+	return numpy.mean(selectionVec, axis=1)
+
+def createSPLMat(selectionVec, params):
+	diagVec = numpy.concatenate(numpy.array([[1.0]]), numpy.repeat(selectionVec, params.kernelLengths), axis=1)
+	splMat = sparse.spdiags(diagVec, array([0]), params.totalLength, params.totalLength)
+	return splMat
 
 def singleFMVC(job):
-	maxScore= (job.w.T*getPsi(job.givenY, job.givenH,job))[0,0]
-	bestH = job.givenH
-	bestY = job.givenY
+	splMat = sparse.eye(params.totalLength, params.totalLength)
+	deltaScale = 1.0
+	if job.params.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
+		return (0.0, sparse.dok_matrix( (params.totalLength * params.numYLabels, 1) ), 0.0)
+	else if job.params.splMode == 'SPL+':
+		splMat = createSPLMat(job.localSPLVars.selected, job.params)
+		deltaScale = getDeltaScale(job.localSPLVars.selected)
+
+	maxScore = -scipy.inf 
+	bestH = -1
+	bestY = -1
+	bestSPLMat = None
+	bestDeltaScale = None
 
 	#print("starting singleFMVC()\n")
 
 	for labelY in job.ylabels:
-		if (labelY in job.whiteList) or labelY == job.givenY:
+		if (labelY in job.whiteList):
 			continue
-		(h, score,psiVec) = highestScoringLVUtility(job.w,labelY,job)
-		totalScore = delta(job.givenY, labelY) + score
+
+		if job.params.splMode == 'SPL++':
+			splMat = createSPLMat(job.localSPLVars.selected[labelY], job.params)
+			deltaScale = getDeltaScale(job.localSPLVars.selected[labelY])
+
+		(h, score, psiVec) = highestScoringLVUtility(job.w, labelY, job, splMat)
+		score = score - (job.w.T * getPsi(job.givenY, job.givenH, job, splMat))[0,0]
+		totalScore = deltaScale * delta(job.givenY, labelY) + score
 		if totalScore >= maxScore:
 			bestH = h
 			bestY = labelY
+			bestDeltaScale = deltaScale
+			bestSPLMat = splMat
 			maxScore = totalScore
 
 	#print("ending singleFMVC()\n")
 
-
 	assert(bestH > -1)
 	assert(bestY > -1)
-	const = delta(job.givenY, bestY)
-	vec = getPsi(job.givenY, job.givenH,job) - getPsi(bestY, bestH,job)
-
+	const = bestDeltaScale * delta(job.givenY, bestY)
+	vec = getPsi(job.givenY, job.givenH, job, bestSPLMat) - getPsi(bestY, bestH, job, bestSPLMat)
+	slack = const - (job.w.T * vec)[0,0]
 	assert( (const-(job.w.T*vec)[0,0]) >= -1e-3)
-
-
-	return (const,copy.deepcopy(vec) ) 
+	return (const, copy.deepcopy(vec), slack) 
 
 class FMVCJob():
 	pass
 
 def getFilepath(example):
-	feature_cache_dir = "/vision/u/rwitten/features"
+	feature_cache_dir = "/vision/u/rwitten/kevin_features"
 	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
