@@ -53,6 +53,9 @@ def OneClassPsiObject(params):
 	result[0,0] = 1
 	return result
 
+def matrixifyW(w, params):
+	return w.reshape( (params.totalLength, len(params.ylabels)), order='F')
+
 def findCuttingPlane(w, params):
 	def jobify(example):
 		job = FMVCJob()
@@ -74,29 +77,29 @@ def findCuttingPlane(w, params):
 	def sumResults(result1, result2):
 		return ( result1[0]+result2[0], result1[1]+result2[1])
 
+	from datetime import datetime
 	try:
+		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
+		s2 = datetime.now()
 		output = params.processQueue.map(singleFMVC, tasks)
 		#output = map(singleFMVC, tasks)
+		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
+		s4 = datetime.now()
 	except KeyboardInterrupt:
 		print "Caught KeyboardInterrupt, terminating workers"
 		sys.exit(1)
 
+	print( "first " + str( (s2-s1).total_seconds()))
+	print( "second" + str( (s3-s2).total_seconds()))
+	print( "third " + str( (s4-s3).total_seconds()))
 
-	
 
 	const = const/len(params.examples)
 	vec = vec/len(params.examples)
 
 	return (const, vec)
-
-def highestScoringLVAllClasses(w,params,psis):
-	wMat = matrixifyW(w,params,psis)
-	for ylabel in job.ylabels:
-		if (labelY in job.whiteList) or labelY == job.givenY:
-			continue
-	allScores = psis*wMat
 
 def highestScoringLVGeneral(w, labelY, params, psis):
 	start = labelY*params.totalLength
@@ -120,23 +123,31 @@ def getPsi(y,h, job):
 	return padCanonicalPsi(psi, y, job)	 
 
 def singleFMVC(job):
-	maxScore= (job.w.T*getPsi(job.givenY, job.givenH,job))[0,0]
-	bestH = job.givenH
-	bestY = job.givenY
+	initialScore= (job.w.T*getPsi(job.givenY, job.givenH,job))[0,0]
+	#bestH = job.givenH
+	#bestY = job.givenY
 
-	#print("starting singleFMVC()\n")
+	#for labelY in job.ylabels:
+	#	if (labelY in job.whiteList) or labelY == job.givenY:
+	#		continue
+	#	(h, score,psiVec) = highestScoringLVUtility(job.w,labelY,job)
+	#	totalScore = delta(job.givenY, labelY) + score
+	#	if totalScore >= maxScore:
+	#		bestH = h
+	#		bestY = labelY
+	#		maxScore = totalScore
+
+	wMat = matrixifyW(job.w,job)
+
+	scores = job.psis * wMat
+	topScores = scores.max(0)
+	topScorers = scores.argmax(0)
 
 	for labelY in job.ylabels:
-		if (labelY in job.whiteList) or labelY == job.givenY:
-			continue
-		(h, score,psiVec) = highestScoringLVUtility(job.w,labelY,job)
-		totalScore = delta(job.givenY, labelY) + score
-		if totalScore >= maxScore:
-			bestH = h
-			bestY = labelY
-			maxScore = totalScore
+		topScores[0, labelY] += delta(job.givenY, labelY)
 
-	#print("ending singleFMVC()\n")
+	bestY = topScores.argmax()
+	bestH = topScorers[0, bestY]
 
 
 	assert(bestH > -1)
@@ -144,7 +155,9 @@ def singleFMVC(job):
 	const = delta(job.givenY, bestY)
 	vec = getPsi(job.givenY, job.givenH,job) - getPsi(bestY, bestH,job)
 
-	assert( (const-(job.w.T*vec)[0,0]) >= -1e-3)
+	assert( (const-(job.w.T*vec)[0,0]) >= -1e-5)
+#	print( "initial score is %f and we find %f" %(initialScore, topScores.max()))
+	assert( topScores.max()>=initialScore-1e-5)
 
 
 	return (const,copy.deepcopy(vec) ) 
@@ -165,6 +178,7 @@ def tryGetFromCache(example):
 	if os.path.exists(filepath):
 		result = CacheObj.loadObject(filepath)
 		example.psiCache.set(example.fileUUID,result)
+		sys.stdout.write("#")
 		return (result, True)
 
 	return (None, False)

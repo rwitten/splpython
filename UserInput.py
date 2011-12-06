@@ -1,5 +1,6 @@
 import getopt
-import multiprocessing
+#import multiprocessing
+from multiprocessing import dummy as multiprocessing
 import sys
 
 from Params import Params
@@ -89,7 +90,7 @@ def setOptions(optdict, train_or_test):
 		return params
 	else:
 		assert(train_or_test =='train')
-		params.processQueue = multiprocessing.Pool(40)
+		params.processQueue = multiprocessing.Pool(20)
 		return params
 
 def getUserInput(train_or_test):

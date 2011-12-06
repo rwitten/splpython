@@ -138,7 +138,8 @@ def initializeMosek(params):
 
 def cuttingPlaneOptimize(w, params, outerIter):
 	env,task = initializeMosek(params)
-	
+
+	print("computing first cutting plane")	
 	objective,margin, constraint = computeObjective(w, params)
 	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
 	constraints = []
@@ -166,7 +167,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		endqp = datetime.datetime.now()	
 
 		
-		dropConstraints(w, constraintList, margins, idle, constraints, params)
+		#dropConstraints(w, constraintList, margins, idle, constraints, params)
 
 
 		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:

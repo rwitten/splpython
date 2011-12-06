@@ -58,8 +58,6 @@ class ImageExample:
 		self.ys = []
 		self.values = []
 
-		for kernelName in self.params.kernelNames:
-			self.loadData(kernelName)
 
 	def loadData(self, kernelName):
 		index = len(self.xs)
@@ -93,6 +91,10 @@ class ImageExample:
 			return result
 
 		features = []
+
+
+		for kernelName in self.params.kernelNames:
+			self.loadData(kernelName)
 
 		for h in self.hlabels:
 			singleResult = CommonApp.OneClassPsiObject(self.params)
