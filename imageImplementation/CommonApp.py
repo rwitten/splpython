@@ -176,9 +176,16 @@ def tryGetFromCache(example):
 
 	filepath = getFilepath(example)
 	if os.path.exists(filepath):
-		result = CacheObj.loadObject(filepath)
+#		result = CacheObj.loadObject(filepath)
+		try:
+			result = CacheObj.loadObject(filepath)
+		except:
+			sys.stdout.write("some sort of disk corruption\n")
+			sys.stdout.flush()
+			return (None, False)
 		example.psiCache.set(example.fileUUID,result)
-		sys.stdout.write("#")
+		sys.stdout.write("%")
+		sys.stdout.flush()
 		return (result, True)
 
 	return (None, False)

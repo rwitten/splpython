@@ -1,8 +1,8 @@
 for C in 1
 do
-	for foldnum in 1
+	for foldnum in 1 2 3 4 5
 	do
-		for class in 'newsmall'
+		for class in 'chunk'
 		do
 			basedir=`./name.sh $C $foldnum $class`
 			scriptname=jobs/${basedir}.sh
@@ -29,7 +29,6 @@ do
 			echo $command_hostname >> $scriptname
 			echo $command_starttime >> $scriptname
 
-			echo $TRAIN >> $scriptname
 			echo $TRAIN >> $scriptname
 			echo $TEST_ON_TRAIN >> $scriptname
 			echo $TEST_ON_TEST >> $scriptname

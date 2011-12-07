@@ -151,8 +151,6 @@ def loadDataFile(params):
 	params.cache= PsiCache.PsiCache()
 
 	for line in tFile:
-		sys.stdout.write("%")
-		sys.stdout.flush()
 		params.examples.append(ImageExample(params, len(params.examples), line))
 
 	print "total number of examples (including duplicates) = " + repr(params.numExamples)

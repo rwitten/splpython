@@ -153,6 +153,8 @@ def cuttingPlaneOptimize(w, params, outerIter):
 
 	iter = 1
 	while (UB - LB > params.maxDualityGap):
+		sys.stdout.flush()
+
 		starttime = datetime.datetime.now()
 		idle.append(0)
 		constraintList.append(constraint)
@@ -188,6 +190,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		endtime= datetime.datetime.now()
 
 		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
+		print( "New stab at UB was %f" % newUB)
 		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 		iter+=1
 		sys.stdout.flush()

@@ -1,6 +1,6 @@
 import getopt
-#import multiprocessing
-from multiprocessing import dummy as multiprocessing
+import multiprocessing
+#from multiprocessing import dummy as multiprocessing
 import sys
 
 from Params import Params
