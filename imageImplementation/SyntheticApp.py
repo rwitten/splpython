@@ -39,9 +39,9 @@ class SyntheticExample:
 			return psi
 
 	def psis(self):
-		(result, success) = CommonApp.tryGetFromCache(self)
-		if success:
-			return result
+		#(result, success) = CommonApp.tryGetFromCache(self)
+		#if success:
+		#	return result
 
 		features = []
 		for h in self.hlabels:
@@ -51,8 +51,9 @@ class SyntheticExample:
 			
 			features.append(singleResult)
 
+		#print("I think we have %d latents right now\n"%(len(self.hlabels)))
 		result = sparse.hstack( features).T.asformat('csc')
-		CommonApp.putInCache(self, result)
+		#CommonApp.putInCache(self, result)
 		return result
 
 	def highestScoringLV(self,w, labelY):
@@ -72,5 +73,10 @@ def SynthePsize(params, trueY, h):
 def loadExamples(params):
 	params.cache = PsiCache.PsiCache()
 	params.examples = []
+	params.numKernels = params.numYLabels
+	params.kernelLengths = []
+	for i in range(params.numKernels):
+		params.kernelLengths.append(1)
+
 	for i in range(params.numExamples):
 		params.examples.append(SyntheticExample(params, i, None))

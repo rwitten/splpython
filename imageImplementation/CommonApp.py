@@ -62,6 +62,8 @@ def createFMVCJob(example, w, params):
 	job.whiteList =  example.whiteList
 	job.ylabels = example.params.ylabels
 	job.totalLength = example.params.totalLength
+	job.kernelLengths = params.kernelLengths
+	job.splMode = params.splParams.splMode
 	job.givenY= example.trueY
 	job.givenH = example.h
 	job.numYLabels = example.params.numYLabels
@@ -106,6 +108,8 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 	start = labelY*params.totalLength
 	end= (labelY+1)*params.totalLength
 	wlocal = w[start:end,0]
+
+	#print("height of wlocal is %d\n"%(wlocal.shape[0]))
 	
 	scores = psis*wlocal;
 	maxScore = scores.max()
@@ -117,30 +121,43 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 
 def highestScoringLVUtility(w, labelY, job, splMat):
 	modifiedPsis = job.psis * splMat
-	return highestScoringLVGeneral(w, labelY, job.params, modifiedPsis)
+	return highestScoringLVGeneral(w, labelY, job, modifiedPsis)
 		
 def getPsi(y,h, job, splMat):
 	psi = splMat * (job.psis[h,:]).T
 	return padCanonicalPsi(psi, y, job)
 
 def getDeltaScale(selectionVec):
-	return numpy.mean(selectionVec, axis=1)
+	myMean = numpy.mean(selectionVec, axis=1)
+	#print("myMean = %f\n"%(myMean))
+	return myMean
 
 def createSPLMat(selectionVec, params):
-	diagVec = numpy.concatenate(numpy.array([[1.0]]), numpy.repeat(selectionVec, params.kernelLengths), axis=1)
-	splMat = sparse.spdiags(diagVec, array([0]), params.totalLength, params.totalLength)
+	#expectedTotalLength = 1
+	#for i in range(len(params.kernelLengths)):
+	#	expectedTotalLength += params.kernelLengths[i]
+
+	#if expectedTotalLength != params.totalLength:
+	#	print("GAVIN!\n")
+	#	assert(0)
+
+	diagVec = numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, params.kernelLengths, axis=1)), axis=1)
+	splMat = sparse.spdiags(diagVec, (0), params.totalLength, params.totalLength)
+	#print("dimension product of diagVec is %d\n"%(numpy.prod(diagVec.shape)))
 	return splMat
 
 def singleFMVC(job):
-	splMat = sparse.eye(params.totalLength, params.totalLength)
+	#print("width of psis is %d\n"%(job.psis.shape[1]))
+	#print("totalLength = %d\n"%(job.totalLength))
+	splMat = sparse.eye(job.totalLength, job.totalLength)
 	deltaScale = 1.0
-	if job.params.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
-		return (0.0, sparse.dok_matrix( (params.totalLength * params.numYLabels, 1) ), 0.0)
-	else if job.params.splMode == 'SPL+':
-		splMat = createSPLMat(job.localSPLVars.selected, job.params)
+	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
+		return (0.0, sparse.dok_matrix( (job.totalLength * job.numYLabels, 1) ), 0.0)
+	elif job.splMode == 'SPL+':
+		splMat = createSPLMat(job.localSPLVars.selected, job)
 		deltaScale = getDeltaScale(job.localSPLVars.selected)
 
-	maxScore = -scipy.inf 
+	maxScore = -numpy.inf 
 	bestH = -1
 	bestY = -1
 	bestSPLMat = None
@@ -152,8 +169,8 @@ def singleFMVC(job):
 		if (labelY in job.whiteList):
 			continue
 
-		if job.params.splMode == 'SPL++':
-			splMat = createSPLMat(job.localSPLVars.selected[labelY], job.params)
+		if job.splMode == 'SPL++':
+			splMat = createSPLMat(job.localSPLVars.selected[labelY], job)
 			deltaScale = getDeltaScale(job.localSPLVars.selected[labelY])
 
 		(h, score, psiVec) = highestScoringLVUtility(job.w, labelY, job, splMat)

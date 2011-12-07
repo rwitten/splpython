@@ -10,7 +10,8 @@ def main():
 	params = UserInput.getUserInput('train')	
 	ExampleLoader.loadExamples(params)
 	w = CommonApp.PsiObject(params,False)
-	globalSPLVars = SPLSelector.SPLVars()
+	globalSPLVars = SPLSelector.SPLVar()
+	globalSPLVars.fraction = 1.0
 	if params.splParams.splMode != 'CCCP':
 		SPLSelector.setupSPL(params.examples, params)
 

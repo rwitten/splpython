@@ -8,5 +8,5 @@ def impute(w, params):
 			print "score changed from " + repr(old_score) + " to " + repr(score)
 
 
-		print("example %d has label %d and trueYlabel %d" %(i, bestH, params.examples[i].trueY))
+		#print("example %d has label %d and trueYlabel %d" %(i, bestH, params.examples[i].trueY))
 		params.examples[i].h = bestH

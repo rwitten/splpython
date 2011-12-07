@@ -1,5 +1,7 @@
 import math
-from math import Random
+import random
+import numpy
+import multiprocessing
 
 from imageImplementation import CommonApp
 
@@ -16,7 +18,7 @@ def setSelected(taskEachExample, splMode, k, ybar, value):
 		taskEachExample.localSPLVars.selected = value
 	elif splMode == 'SPL+':
 		taskEachExample.localSPLVars.selected[0, k] = value
-	elif splMode = 'SPL++':
+	elif splMode == 'SPL++':
 		taskEachExample.localSPLVars.selected[ybar][0, k] = value
 	else:
 		print("ERROR: setSelected() does not support splMode = %s\n"%(splMode))
@@ -40,9 +42,9 @@ def setupSPL(examples, params):
 
 #note: This must return a (taskEachExample, contribution) tuple
 def contributionForEachExample(taskEachExample):
-	splMode = taskEachExample.parentTask.params.splParams.splMode
-	ybar = taskEachExample.parentTask.curYbar
-	k = taskEachExample.parentTask.curK
+	k = taskEachExample.curK
+	ybar = taskEachExample.curYbar
+	splMode = taskEachExample.splMode
 	setSelected(taskEachExample, splMode, k, ybar, 1.0)
 	(garbageA, garbageB, slackOn) = CommonApp.singleFMVC(taskEachExample.fmvcJob)
 	setSelected(taskEachExample, splMode, k, ybar, 0.0)
@@ -60,42 +62,58 @@ def selectLowestContributors(taskEachTrueY, contributionsByExample):
 	sortedContribs = sorted(contributionsByExample, key=lambda contrib: contrib[1])
 	ybar = taskEachTrueY.curYbar
 	k = taskEachTrueY.curK
-	splMode = taskEachTrueY.params.splParams.splMode
-	numToSelect = ceil(taskEachtTrueY.globalSPLVars.fractionToSelect * float(len(sortedContribs) - retrieveNumWhiteListed(taskEachTrueY, splMode, ybar)))
+	splMode = taskEachTrueY.splMode
+	numToSelect = math.ceil(taskEachTrueY.fraction * float(len(sortedContribs) - retrieveNumWhiteListed(taskEachTrueY, splMode, ybar)))
 	selectedSoFar = 0
 	for i in range(len(sortedContribs)):
 		if selectedSoFar < numToSelect:
 			setSelected(sortedContribs[i][0], splMode, k, ybar, 1.0)
 			selectedSoFar += 1
-		elif ybar in sortedContribs[i][0].whiteList and taskEachTrueY.params.splParams.splMode == 'SPL++':
+		elif ybar in sortedContribs[i][0].whiteList and taskEachTrueY.splMode == 'SPL++':
 			setSelected(sortedContribs[i][0], splMode, k, ybar, 1.0)
 		else:
 			setSelected(sortedContribs[i][0], splMode, k, ybar, 0.0)
 
-def selectKYbar(params, splMode):
+def selectKYbar(numKernels, numYLabels, splMode):
 	if splMode == 'SPL':
 		return (None, None)
 	elif splMode == 'SPL+':
-		return (Random.randInt(0, params.numKernels - 1), None)
+		return (random.randint(0, numKernels - 1), None)
 	elif splMode == 'SPL++':
-		return (Random.randInt(0, params.numKernels - 1), Random.randInt(0, params.numYLabels - 1))
+		return (random.randint(0, numKernels - 1), random.randint(0, numYLabels - 1))
 	else:
 		print("ERROR: selectKYbar() doesn't support splMode = %s\n"%(splMode))
 		assert(0)
 		return (None, None)
 
 def selectForEachTrueY(taskEachTrueY):
-	numIters = taskEachTrueY.params.numSPLInnerIters
+	def setKYbar(taskEachExample):
+		taskEachExample.curK = taskEachTrueY.curK
+		taskEachExample.curYbar = taskEachTrueY.curYbar
+
+	if len(taskEachTrueY.tasksByExample) <= 0: #Based on what I've seen so far, I don't trust Pool.map() to deal with edge cases like this
+		return
+
+	curProcess = multiprocessing.current_process()
+	curProcess.daemon = False #daemonic processes can't have children
+	poolSize = min(getPoolSize(taskEachTrueY.totalNumExamples, len(taskEachTrueY.tasksByExample)), 1) #because Pool is too stupid to figure out how to do zero things with zero processes
+	processQueue = multiprocessing.Pool(poolSize)
+	numIters = taskEachTrueY.splInnerIters
 	for iter in range(numIters):
-		(taskEachTrueY.curK, taskEachTrueY.curYbar) = selectKYbar(taskEachTrueY.params, taskEachTrueY.params.splParams.splMode)
-		contributionsByExample = taskEachTrueY.processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
+		(taskEachTrueY.curK, taskEachTrueY.curYbar) = selectKYbar(taskEachTrueY.numKernels, taskEachTrueY.numYLabels, taskEachTrueY.splMode)
+		map(setKYbar, taskEachTrueY.tasksByExample)
+		contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
 		selectLowestContributors(taskEachTrueY, contributionsByExample)
+
+	#print("finished!\n")
 
 def getExamplesWithTrueY(params, trueY):
 	trueYExamples = []
 	for example in params.examples:
 		if example.trueY == trueY:
 			trueYExamples.append(example)
+
+	return trueYExamples
 
 def initLocalSPLVars(taskEachTrueY, splMode):
 	numK = 0
@@ -104,21 +122,23 @@ def initLocalSPLVars(taskEachTrueY, splMode):
 		numK = 1
 		numYbar = 1
 	elif splMode == 'SPL+':
-		numK = taskEachTrueY.params.numKernels
+		numK = taskEachTrueY.numKernels
 		numYbar = 1
 	elif splMode == 'SPL++':
-		numK = taskEachTrueY.params.numKernels
-		numYbar = taskEachTrueY.params.numYLabels
+		numK = taskEachTrueY.numKernels
+		numYbar = taskEachTrueY.numYLabels
 	else:
 		assert(0)
 
 	for k in range(numK):
 		for ybar in range(numYbar):
-			Random.shuffle(taskEachTrueY.tasksEachExample)
+			random.shuffle(taskEachTrueY.tasksByExample)
 			taskList = []
-			for i in range(len(taskEachTrueY.tasksEachExample)):
-				taskList.append((taskEachTrueY.tasksEachExample[i], i))
+			for i in range(len(taskEachTrueY.tasksByExample)):
+				taskList.append((taskEachTrueY.tasksByExample[i], i))
 
+			taskEachTrueY.curK = k
+			taskEachTrueY.curYbar = ybar
 			selectLowestContributors(taskEachTrueY, taskList)
 
 def getNumWhiteListed(params, trueYExamples):
@@ -133,27 +153,30 @@ def getNumWhiteListed(params, trueYExamples):
 
 	return numWhiteListed
 
-def getPoolSize(params, maxNumAlive):
-	return ceil(float(maxNumAlive) / float(params.numExamples) * 40.0)
+def getPoolSize(totalNumExamples, maxNumAlive):
+	return int(math.ceil(float(maxNumAlive) / float(totalNumExamples) * 40.0))
 
 def select(globalSPLVars, w, params):
 	def jobifyEachTrueY(trueY):
 		taskEachTrueY = SPLJob()
 		def jobifyEachExample(example):
 			taskEachExample = SPLJob()
-			taskEachExample.parentTask = taskEachTrueY
+			taskEachExample.splMode = taskEachTrueY.splMode
 			taskEachExample.localSPLVars = example.localSPLVars
 			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, w, params)
 			taskEachExample.whiteList = example.whiteList
 			return taskEachExample
 
-		taskEachTrueY.params = params
-		taskEachTrueY.globalSPLVars = globalSPLVars
+		taskEachTrueY.totalNumExamples = params.numExamples
+		taskEachTrueY.numYLabels = params.numYLabels
+		taskEachTrueY.numKernels = params.numKernels
+		taskEachTrueY.splMode = params.splParams.splMode
+		taskEachTrueY.splInnerIters = params.splParams.splInnerIters
+		taskEachTrueY.fraction = globalSPLVars.fraction
 		trueYExamples = getExamplesWithTrueY(params, trueY)
 		if params.splParams.splMode == 'SPL++':
 			taskEachTrueY.numWhiteListed = getNumWhiteListed(params, trueYExamples)
 
-		taskEachTrueY.processQueue = multiprocessing.Pool(getPoolSize(params, len(trueYExamples))) #TODO: figure out what it means to "create" a Pool with X number of worker processes.  Is that just the max number of processes that'll run simultaneously when I call Pool.map()?
 		taskEachTrueY.trueY = trueY
 		taskEachTrueY.tasksByExample = map(jobifyEachExample, trueYExamples) #hopefully won't have to parallelize this
 		initLocalSPLVars(taskEachTrueY, params.splParams.splMode) #randomly include fraction of examples
@@ -161,3 +184,5 @@ def select(globalSPLVars, w, params):
 
 	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
 	params.processQueue.map(selectForEachTrueY, tasksByTrueY)
+	#print("by the time I get printed, everything should be finished\n")
+	#map(selectForEachTrueY, tasksByTrueY)

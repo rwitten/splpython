@@ -22,7 +22,7 @@ def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
 	if obj < curBestObj:
 		wBest = w
 		
-	return (obj >= (curBestObj - params.maxDualityGap) and globalSPLVars.fraction >= 1.0, min([obj, curBestObj]), wBest)
+	return (obj >= (curBestObj - params.maxDualityGap), min([obj, curBestObj]), wBest)
 
 def optimize(w, globalSPLVars, params):
 	bestObj = numpy.inf
@@ -34,7 +34,7 @@ def optimize(w, globalSPLVars, params):
 		print("Imputing h")
 		HImputation.impute(w, params) #this may interact with SPL at some point
 		(converged, bestObj, wBest) = checkConvergence(w, globalSPLVars, params, bestObj, wBest)
-		if converged:
+		if converged and iter > params.splParams.splInitIters and globalSPLVars.fraction >= 1.0:
 			print("Breaking because of convergence")
 			break
 		elif params.supervised:

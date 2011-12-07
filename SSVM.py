@@ -68,7 +68,7 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 
 	return 0.5 * (w.T * w)[0,0] + params.C*psi
 
-def dropConstraints(w, constraintList, margins, idle, constraints, params):
+def dropConstraints(w, constraintList, margins, idle, constraints, task, params):
 	hitlist = []
 	psiConMax = - numpy.inf
 	psiCons = numpy.zeros(len(idle), float)
@@ -88,6 +88,7 @@ def dropConstraints(w, constraintList, margins, idle, constraints, params):
 			numActive += 1
 			idle[i] = 0
 	
+	task.remove(mosek.accmode.con, hitlist)
 	hitlist.reverse()
 	for j in range(len(hitlist)):
 		i = hitlist[j]
@@ -134,6 +135,10 @@ def initializeMosek(params):
 
 	task.putmaxnumvar(NUMVAR)
 	
+#	task.putmaxnumcon(params.estimatedNumConstraints)
+
+#	task.putmaxnumanz(NUMVAR * params.estimatedNumConstraints)
+
 	return env, task
 
 def cuttingPlaneOptimize(w, params, outerIter):
@@ -166,7 +171,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		endqp = datetime.datetime.now()	
 
 		
-		dropConstraints(w, constraintList, margins, idle, constraints, params)
+		dropConstraints(w, constraintList, margins, idle, constraints, task, params)
 
 
 		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:

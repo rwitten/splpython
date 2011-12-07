@@ -51,6 +51,8 @@ class ImageExample:
 		self.height = objects[1]
 		self.trueY = int(objects[3])
 		self.whiteList = objects[4:]
+		for i in range(len(self.whiteList)):
+			self.whiteList[i] = int(self.whiteList[i])
 	
 		self.fillHLabels("/afs/cs.stanford.edu/u/rwitten/scratch/mkl_features/%s.txt"%(self.fileUUID))
 		

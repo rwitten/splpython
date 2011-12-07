@@ -19,15 +19,16 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0
 	params.maxOuterIters = 20000
+	params.estimatedNumConstraints = 100
 	params.syntheticParams = None
 	params.supervised = False
-	params.numYLabels =20 
+	params.numYLabels = 20
 	params.maxPsiGap = 0.00001
-	params.maxTimeIdle = 100
+	params.maxTimeIdle = 20
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
 	params.splParams.splInitIters = 2
-	params.splParams.splInnerIters = 500
+	params.splParams.splInnerIters = 10
 	params.splParams.splOuterIters = 10
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
 	if '--maxPsiGap' in optdict:
@@ -62,11 +63,11 @@ def setOptions(optdict, train_or_test):
 
 	if '--synthetic' in optdict and int(optdict['--synthetic']):
 		params.syntheticParams = Params()
-		params.syntheticParams.numLatents = 5
-		params.syntheticParams.strength = 1000.0
-		params.numYLabels =3
+		params.syntheticParams.numLatents = 10
+		params.syntheticParams.strength = 10.0
+		params.numYLabels = 5
 		params.maxPsiGap = 0.00001
-		params.numExamples = 30
+		params.numExamples = 50
 		params.totalLength = params.numYLabels + 1
 		params.lengthW = params.numYLabels * params.totalLength
 		if '--syntheticNumLatents' in optdict:
