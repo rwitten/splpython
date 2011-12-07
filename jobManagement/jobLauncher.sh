@@ -1,8 +1,8 @@
-for C in 1
+for C in 1 10 100
 do
-	for foldnum in 1 2 3 4 5
+	for foldnum in 1
 	do
-		for class in 'chunk'
+		for class in 'all'
 		do
 			basedir=`./name.sh $C $foldnum $class`
 			scriptname=jobs/${basedir}.sh
