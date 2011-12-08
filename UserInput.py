@@ -25,7 +25,7 @@ def setOptions(optdict, train_or_test):
 	params.supervised = False
 	params.numYLabels = 20
 	params.maxPsiGap = 0.00001
-	params.maxTimeIdle = 20
+	params.maxTimeIdle = 5
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
 	params.splParams.splInitIters = 2
@@ -96,7 +96,7 @@ def setOptions(optdict, train_or_test):
 		return params
 	else:
 		assert(train_or_test =='train')
-		params.processQueue = multiprocessing.Pool(20)
+		params.processPool = multiprocessing.Pool()
 		return params
 
 def getUserInput(train_or_test):

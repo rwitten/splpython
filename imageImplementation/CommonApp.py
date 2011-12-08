@@ -1,6 +1,7 @@
 import cPickle
 import copy
 from datetime import datetime
+import multiprocessing
 import numpy
 from numpy import random
 import os
@@ -94,8 +95,8 @@ def findCuttingPlane(w, params):
 		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
 		s2 = datetime.now()
-		#output = params.processQueue.map(singleFMVC, tasks)
-		output = map(singleFMVC, tasks)
+		output = params.processPool.map(singleFMVC, tasks)#, (len(tasks)/multiprocessing.cpu_count())+1)
+		#output = map(singleFMVC, tasks)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
@@ -214,7 +215,7 @@ class FMVCJob():
 	pass
 
 def getFilepath(example):
-	feature_cache_dir = "/vision/u/rwitten/kevin_features"
+	feature_cache_dir = "/vision/u/rwitten/features"
 	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
