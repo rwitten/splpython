@@ -25,6 +25,7 @@ def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
 	return (obj >= (curBestObj - params.maxDualityGap), min([obj, curBestObj]), wBest)
 
 def optimize(w, globalSPLVars, params):
+	random.seed(params.seed)
 	bestObj = numpy.inf
 	wBest = w
 	initLatentVariables(w, params)

@@ -74,17 +74,24 @@ def selectLowestContributors(taskEachTrueY, contributionsByExample):
 		else:
 			setSelected(sortedContribs[i][0], splMode, k, ybar, 0.0)
 
-def selectKYbar(numKernels, numYLabels, splMode):
+def getKYList(numKernels, numYLabels, splMode):
+	kyList = []
 	if splMode == 'SPL':
-		return (None, None)
+		kyList.append((None, None))
 	elif splMode == 'SPL+':
-		return (random.randint(0, numKernels - 1), None)
+		for k in range(numKernels):
+			kyList.append((k, None))
+
 	elif splMode == 'SPL++':
-		return (random.randint(0, numKernels - 1), random.randint(0, numYLabels - 1))
+		for k in range(numKernels):
+			for y in range(numYLabels):
+				kyList.append((k, y))
+
 	else:
-		print("ERROR: selectKYbar() doesn't support splMode = %s\n"%(splMode))
 		assert(0)
-		return (None, None)
+
+	random.shuffle(kyList)
+	return kyList
 
 def selectForEachTrueY(taskEachTrueY):
 	def setKYbar(taskEachExample):
@@ -100,10 +107,12 @@ def selectForEachTrueY(taskEachTrueY):
 	processQueue = multiprocessing.Pool(poolSize)
 	numIters = taskEachTrueY.splInnerIters
 	for iter in range(numIters):
-		(taskEachTrueY.curK, taskEachTrueY.curYbar) = selectKYbar(taskEachTrueY.numKernels, taskEachTrueY.numYLabels, taskEachTrueY.splMode)
-		map(setKYbar, taskEachTrueY.tasksByExample)
-		contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
-		selectLowestContributors(taskEachTrueY, contributionsByExample)
+		kyList = getKYList(taskEachTrueY.numKernels, taskEachTrueY.numYLabels, taskEachTrueY.splMode)
+		for kyPair in kyList:
+			(taskEachTrueY.curK, taskEachTrueY.curYbar) = (kyPair[0], kyPair[1])
+			map(setKYbar, taskEachTrueY.tasksByExample)
+			contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
+			selectLowestContributors(taskEachTrueY, contributionsByExample)
 
 	#print("finished!\n")
 
