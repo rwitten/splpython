@@ -29,8 +29,8 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
 	params.splParams.splInitIters = 2
-	params.splParams.splInnerIters = 10
-	params.splParams.splOuterIters = 10
+	params.splParams.splOuterIters = 1
+	params.splParams.splInnerIters = 1
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
 	if '--maxPsiGap' in optdict:
 		params.maxPsiGap = float(optdict['--maxPsiGap'])
