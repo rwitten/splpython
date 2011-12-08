@@ -23,7 +23,7 @@ def delta(y1, y2):
 def padCanonicalPsi(canonicalPsi, classY,  params):
 	canonicalPsi = canonicalPsi.tocoo()
 	if ( classY > 0 and classY< params.numYLabels-1):
-		before = sparse.dok_matrix( ( params.totalLength*classY,1) )
+		before = sparse.dok_matrix(( params.totalLength*classY,1) )
 		after =sparse.dok_matrix( (params.totalLength*(params.numYLabels-classY-1), 1) )
 		start = datetime.now()
 		result = sparse.vstack( (before, canonicalPsi,  after))
@@ -57,7 +57,9 @@ def createFMVCJob(example, w, params):
 	job = FMVCJob()
 	#print("starting %d\n"%(example.id))
 	job.psis = example.psis()
-	job.localSPLVars = example.localSPLVars
+	if params.splParams.splMode != 'CCCP':
+		job.localSPLVars = example.localSPLVars
+
 	#print("ending %d\n"%(example.id))
 	job.whiteList =  example.whiteList
 	job.ylabels = example.params.ylabels
@@ -72,6 +74,13 @@ def createFMVCJob(example, w, params):
 	job.fileUUID = example.fileUUID
 	return (job)
 
+def matrixifyW(w, params):
+	return w.reshape( (params.totalLength, len(params.ylabels)), order='F')
+
+def tileW(w, params):
+	wlocal = w[(params.givenY * params.totalLength):((params.givenY + 1) * params.totalLength), 0]
+	return numpy.repeat(wlocal, (params.numYLabels), axis=1)
+
 def findCuttingPlane(w, params):
 	def jobify(example):
 		job = createFMVCJob(example, w, params)
@@ -80,29 +89,29 @@ def findCuttingPlane(w, params):
 	def sumResults(result1, result2):
 		return ( result1[0]+result2[0], result1[1]+result2[1])
 
+	from datetime import datetime
 	try:
+		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
-		output = params.processQueue.map(singleFMVC, tasks)
-		#output = map(singleFMVC, tasks)
+		s2 = datetime.now()
+		#output = params.processQueue.map(singleFMVC, tasks)
+		output = map(singleFMVC, tasks)
+		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
+		s4 = datetime.now()
 	except KeyboardInterrupt:
 		print "Caught KeyboardInterrupt, terminating workers"
 		sys.exit(1)
 
+	print( "first " + str( (s2-s1).total_seconds()))
+	print( "second" + str( (s3-s2).total_seconds()))
+	print( "third " + str( (s4-s3).total_seconds()))
 
-	
 
 	const = const/len(params.examples)
 	vec = vec/len(params.examples)
 
 	return (const, vec)
-
-def highestScoringLVAllClasses(w,params,psis):
-	wMat = matrixifyW(w,params,psis)
-	for ylabel in job.ylabels:
-		if (labelY in job.whiteList) or labelY == job.givenY:
-			continue
-	allScores = psis*wMat
 
 def highestScoringLVGeneral(w, labelY, params, psis):
 	start = labelY*params.totalLength
@@ -127,71 +136,79 @@ def getPsi(y,h, job, splMat):
 	psi = splMat * (job.psis[h,:]).T
 	return padCanonicalPsi(psi, y, job)
 
-def getDeltaScale(selectionVec):
-	myMean = numpy.mean(selectionVec, axis=1)
-	#print("myMean = %f\n"%(myMean))
-	return myMean
-
-def createSPLMat(selectionVec, params):
-	#expectedTotalLength = 1
-	#for i in range(len(params.kernelLengths)):
-	#	expectedTotalLength += params.kernelLengths[i]
-
-	#if expectedTotalLength != params.totalLength:
-	#	print("GAVIN!\n")
-	#	assert(0)
-
-	diagVec = numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, params.kernelLengths, axis=1)), axis=1)
-	splMat = sparse.spdiags(diagVec, (0), params.totalLength, params.totalLength)
-	#print("dimension product of diagVec is %d\n"%(numpy.prod(diagVec.shape)))
-	return splMat
-
-def singleFMVC(job):
-	#print("width of psis is %d\n"%(job.psis.shape[1]))
-	#print("totalLength = %d\n"%(job.totalLength))
-	splMat = sparse.eye(job.totalLength, job.totalLength)
-	deltaScale = 1.0
-	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
-		return (0.0, sparse.dok_matrix( (job.totalLength * job.numYLabels, 1) ), 0.0)
+def createDeltaVec(job):
+	deltaVec = None
+	if job.splMode == 'SPL' or job.splMode == 'CCCP':
+		deltaVec = numpy.ones((1, job.numYLabels))
 	elif job.splMode == 'SPL+':
-		splMat = createSPLMat(job.localSPLVars.selected, job)
-		deltaScale = getDeltaScale(job.localSPLVars.selected)
+		deltaVec = numpy.repeat(numpy.array([numpy.mean(job.localSPLVars.selected, axis=1)]), (job.numYLabels), axis=1)
+	elif job.splMode == 'SPL++':
+		deltaVec = numpy.zeros((1, job.numYLabels))
+		for labelY in range(job.numYLabels):
+			deltaVec[0, labelY] = numpy.mean(job.localSPLVars.selected[labelY], axis = 1)
+	else:
+		assert(0)
 
-	maxScore = -numpy.inf 
-	bestH = -1
-	bestY = -1
-	bestSPLMat = None
-	bestDeltaScale = None
+	for labelY in range(job.numYLabels):
+		deltaVec[0, labelY] = deltaVec[0, labelY] * delta(job.givenY, labelY)
 
-	#print("starting singleFMVC()\n")
+	return deltaVec
 
-	for labelY in job.ylabels:
-		if (labelY in job.whiteList):
-			continue
+def createSPLMat(job):
+	if job.splMode == 'SPL' or job.splMode == 'CCCP':
+		return numpy.ones((job.totalLength, job.numYLabels))
+	elif job.splMode == 'SPL+':
+		selectionVec = (job.localSPLVars.selected).T
+		columnVec = numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, job.kernelLengths, axis=0)), axis=0)
+		return numpy.repeat(columnVec, (job.numYLabels), axis=1)
+	elif job.splMode == 'SPL++':
+		columnVecs = []
+		for labelY in range(job.numYLabels):
+			selectionVec = (job.localSPLVars.selected[labelY]).T
+			columnVecs.append(numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, job.kernelLengths, axis=0)), axis=0))
 
-		if job.splMode == 'SPL++':
-			splMat = createSPLMat(job.localSPLVars.selected[labelY], job)
-			deltaScale = getDeltaScale(job.localSPLVars.selected[labelY])
+		return numpy.concatenate(columnVecs, axis=1)
+	else:
+		assert(0)
+		return None
+		
+def singleFMVC(job):
+	#print("enter singleFMVC\n")
+	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
+		return (0.0, sparse.dok_matrix((job.totalLength, 1)), 0.0)
 
-		(h, score, psiVec) = highestScoringLVUtility(job.w, labelY, job, splMat)
-		score = score - (job.w.T * getPsi(job.givenY, job.givenH, job, splMat))[0,0]
-		totalScore = deltaScale * delta(job.givenY, labelY) + score
-		if totalScore >= maxScore:
-			bestH = h
-			bestY = labelY
-			bestDeltaScale = deltaScale
-			bestSPLMat = splMat
-			maxScore = totalScore
+	splMat = createSPLMat(job)
+	fullWMat = matrixifyW(job.w, job)
+	givenWMat = tileW(job.w, job)
+	deltaVec = createDeltaVec(job)
+	A = splMat * numpy.array(fullWMat)
+	B = splMat * numpy.array(givenWMat)
+	violatorScores = job.psis * numpy.matrix(A)
+	givenScores = job.psis[job.givenH,:] * numpy.matrix(B)
+	topViolatorScores = violatorScores.max(0)
+	topViolatorScorers = violatorScores.argmax(0)
+	totalScores = topViolatorScores + deltaVec - givenScores
+	for whiteLabel in job.whiteList:
+		totalScores[0, whiteLabel] = -1e10 #This ensures that none of the labels in the whitelist will get chosen as the MVC
 
-	#print("ending singleFMVC()\n")
-
-	assert(bestH > -1)
-	assert(bestY > -1)
-	const = bestDeltaScale * delta(job.givenY, bestY)
-	vec = getPsi(job.givenY, job.givenH, job, bestSPLMat) - getPsi(bestY, bestH, job, bestSPLMat)
-	slack = const - (job.w.T * vec)[0,0]
-	assert( (const-(job.w.T*vec)[0,0]) >= -1e-3)
-	return (const, copy.deepcopy(vec), slack) 
+	topScore = (totalScores.max(1))[0,0]
+	assert(topScore >= -1e-5)
+	bestY = (totalScores.argmax(1))[0,0]
+	assert(bestY not in job.whiteList)
+	bestH = topViolatorScorers[0, bestY]
+	const = deltaVec[0, bestY]
+	#print("splMat is %d by %d\n"%(splMat.shape[0], splMat.shape[1]))
+	diagVec = numpy.zeros((1, job.totalLength))
+	diagVec[0,:] = (splMat[:,bestY]).T
+	splDiag = sparse.spdiags(diagVec, numpy.array([0]), job.totalLength, job.totalLength)
+	canonicalPsiBest = splDiag * (job.psis[bestH,:]).T
+	#print("canonicalPsiBest is %d by %d\n"%(canonicalPsiBest.shape[0], canonicalPsiBest.shape[1]))
+	canonicalPsiGiven = splDiag * (job.psis[job.givenH,:]).T
+	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, job)
+	psiGiven = padCanonicalPsi(canonicalPsiGiven, job.givenY, job)
+	psiVec = psiGiven - psiBest
+	#print("exit singleFMVC\n")
+	return (const, copy.deepcopy(psiVec), topScore)
 
 class FMVCJob():
 	pass
@@ -207,8 +224,16 @@ def tryGetFromCache(example):
 
 	filepath = getFilepath(example)
 	if os.path.exists(filepath):
-		result = CacheObj.loadObject(filepath)
+#		result = CacheObj.loadObject(filepath)
+		try:
+			result = CacheObj.loadObject(filepath)
+		except:
+			sys.stdout.write("some sort of disk corruption\n")
+			sys.stdout.flush()
+			return (None, False)
 		example.psiCache.set(example.fileUUID,result)
+		sys.stdout.write("%")
+		sys.stdout.flush()
 		return (result, True)
 
 	return (None, False)

@@ -60,8 +60,6 @@ class ImageExample:
 		self.ys = []
 		self.values = []
 
-		for kernelName in self.params.kernelNames:
-			self.loadData(kernelName)
 
 	def loadData(self, kernelName):
 		index = len(self.xs)
@@ -95,6 +93,10 @@ class ImageExample:
 			return result
 
 		features = []
+
+
+		for kernelName in self.params.kernelNames:
+			self.loadData(kernelName)
 
 		for h in self.hlabels:
 			singleResult = CommonApp.OneClassPsiObject(self.params)
@@ -151,8 +153,6 @@ def loadDataFile(params):
 	params.cache= PsiCache.PsiCache()
 
 	for line in tFile:
-		sys.stdout.write("%")
-		sys.stdout.flush()
 		params.examples.append(ImageExample(params, len(params.examples), line))
 
 	print "total number of examples (including duplicates) = " + repr(params.numExamples)

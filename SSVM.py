@@ -128,7 +128,8 @@ def initializeMosek(params):
 
 	# Tricks for the task
 #	task.putintparam(mosek.iparam.data_check,mosek.onoffkey.on)
-#	task.putintparam(mosek.iparam.intpnt_num_threads ,40)
+	import multiprocessing
+	task.putintparam(mosek.iparam.intpnt_num_threads ,multiprocessing.cpu_count())
 	task.putintparam(mosek.iparam.sim_max_num_setbacks,	1000)
 	# Attach a printer to the task
 	task.set_Stream (mosek.streamtype.log, streamprinter)
@@ -143,7 +144,8 @@ def initializeMosek(params):
 
 def cuttingPlaneOptimize(w, params, outerIter):
 	env,task = initializeMosek(params)
-	
+
+	print("computing first cutting plane")	
 	objective,margin, constraint = computeObjective(w, params)
 	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
 	constraints = []
@@ -157,6 +159,8 @@ def cuttingPlaneOptimize(w, params, outerIter):
 
 	iter = 1
 	while (UB - LB > params.maxDualityGap):
+		sys.stdout.flush()
+
 		starttime = datetime.datetime.now()
 		idle.append(0)
 		constraintList.append(constraint)
@@ -170,9 +174,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		
 		endqp = datetime.datetime.now()	
 
-		
 		dropConstraints(w, constraintList, margins, idle, constraints, task, params)
-
 
 		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:
 			LB = newLB
@@ -192,6 +194,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		endtime= datetime.datetime.now()
 
 		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
+		print( "New stab at UB was %f" % newUB)
 		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 		iter+=1
 		sys.stdout.flush()

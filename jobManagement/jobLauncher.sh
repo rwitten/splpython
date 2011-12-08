@@ -16,6 +16,7 @@ do
 			TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
 
 			command_starttimestamp="date > ./output/${basedir}.starttime"
+			command_hostname="hostname> ./output/${basedir}.hostname"
 			command_endtimestamp="date > ./output/${basedir}.endtime" 
 			command_starttime='START=$(date +%s)'
 			command_endtime='END=$(date +%s)'
@@ -25,9 +26,9 @@ do
 
 			echo $CHANGE_DIR > $scriptname
 			echo $command_starttimestamp >> $scriptname
+			echo $command_hostname >> $scriptname
 			echo $command_starttime >> $scriptname
 
-			echo $TRAIN >> $scriptname
 			echo $TRAIN >> $scriptname
 			echo $TEST_ON_TRAIN >> $scriptname
 			echo $TEST_ON_TEST >> $scriptname
@@ -38,8 +39,14 @@ do
 			echo $command_time_passed >> $scriptname
 			chmod +x $scriptname
 
-			echo "Posting $scriptname"
-			qsub -q daglab $scriptname
+			if [ -z $1 ]
+			then
+				echo "Not posting $scriptname" 
+			else
+				echo "Posting $scriptname"
+				qsub -q daglab $scriptname
+			fi
+
 		done
 	done
 done
