@@ -94,8 +94,8 @@ def findCuttingPlane(w, params):
 		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
 		s2 = datetime.now()
-		#output = params.processQueue.map(singleFMVC, tasks)
-		output = map(singleFMVC, tasks)
+		output = params.processQueue.map(singleFMVC, tasks)
+		#output = map(singleFMVC, tasks)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
@@ -214,8 +214,11 @@ class FMVCJob():
 	pass
 
 def getFilepath(example):
-	feature_cache_dir = "/vision/u/rwitten/kevin_features"
-	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
+	feature_cache_dir = "/vision/u/rwitten/features"
+	if example.params.babyData == 1:
+		return feature_cache_dir + "/%s_100.rlw"%(example.fileUUID)
+	else:
+		return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
 def tryGetFromCache(example):
