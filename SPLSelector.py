@@ -104,14 +104,15 @@ def selectForEachTrueY(taskEachTrueY):
 	curProcess = multiprocessing.current_process()
 	curProcess.daemon = False #daemonic processes can't have children
 	poolSize = min(getPoolSize(taskEachTrueY.totalNumExamples, len(taskEachTrueY.tasksByExample)), 1) #because Pool is too stupid to figure out how to do zero things with zero processes
-	processQueue = multiprocessing.Pool(poolSize)
+#	processQueue = multiprocessing.Pool(poolSize)
 	numIters = taskEachTrueY.splInnerIters
 	for iter in range(numIters):
 		kyList = getKYList(taskEachTrueY.numKernels, taskEachTrueY.numYLabels, taskEachTrueY.splMode)
 		for kyPair in kyList:
 			(taskEachTrueY.curK, taskEachTrueY.curYbar) = (kyPair[0], kyPair[1])
 			map(setKYbar, taskEachTrueY.tasksByExample)
-			contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
+			#contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
+			contributionsByExample = map(contributionForEachExample, taskEachTrueY.tasksByExample)
 			selectLowestContributors(taskEachTrueY, contributionsByExample)
 
 	#print("finished!\n")
@@ -192,6 +193,7 @@ def select(globalSPLVars, w, params):
 		return taskEachTrueY
 
 	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
-	params.processQueue.map(selectForEachTrueY, tasksByTrueY)
+
+	params.processPool.map(selectForEachTrueY, tasksByTrueY)
 	#print("by the time I get printed, everything should be finished\n")
 	#map(selectForEachTrueY, tasksByTrueY)

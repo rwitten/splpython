@@ -2,7 +2,7 @@ for C in 10
 do
 	for foldnum in 1
 	do
-		for class in 'all'
+		for class in 'total'
 		do
 			for algorithm in 'CCCP' 'SPL' 'SPL+' 'SPL++'
 			do
@@ -12,7 +12,7 @@ do
 				CHANGE_DIR="cd $SPL_BASE_DIR"
 
 
-				TRAIN="$EPYTHON train.py --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
+				TRAIN="$EPYTHON train.py --initialModelFile=goodStartingPoints/C10_iter2.model --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
 				TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
 
 				TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"

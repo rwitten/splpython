@@ -9,9 +9,15 @@ import SPLSelector
 def main():
 	params = UserInput.getUserInput('train')	
 	ExampleLoader.loadExamples(params)
-	w = CommonApp.PsiObject(params,False)
+
+	if params.initialModelFile:
+		w = CacheObj.loadObject(params.initialModelFile)
+	else:
+		w = CommonApp.PsiObject(params,False)
+
 	globalSPLVars = SPLSelector.SPLVar()
 	globalSPLVars.fraction = 1.0
+	
 	if params.splParams.splMode != 'CCCP':
 		SPLSelector.setupSPL(params.examples, params)
 

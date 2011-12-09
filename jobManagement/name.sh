@@ -5,5 +5,5 @@ foldnum=$2
 class=$3
 algorithm=$4
 
-echo NAGS${algorithm}_C${C}_${class}_${foldnum}
+echo ${algorithm}_C${C}_${class}_${foldnum}
 
