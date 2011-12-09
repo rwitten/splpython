@@ -32,11 +32,18 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
 
-	params.initialModelFile = None
+	params.babyData = 0
+	if '--babyData' in optdict:
+		params.babyData = int(optdict['--babyData'])
+
+	if params.babyData == 1:
+		params.numYLabels = 7
+
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
 	if '--maxPsiGap' in optdict:
 		params.maxPsiGap = float(optdict['--maxPsiGap'])
-
+	
+	params.initialModelFile = None
 	if '--initialModelFile' in optdict:
 		params.initialModelFile = optdict['--initialModelFile']
 
@@ -104,8 +111,9 @@ def setOptions(optdict, train_or_test):
 		params.processPool = multiprocessing.Pool()
 		return params
 
+
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'initialModelFile=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'initialModelFile=']
 
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')

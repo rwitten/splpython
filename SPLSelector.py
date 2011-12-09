@@ -115,6 +115,8 @@ def selectForEachTrueY(taskEachTrueY):
 			contributionsByExample = map(contributionForEachExample, taskEachTrueY.tasksByExample)
 			selectLowestContributors(taskEachTrueY, contributionsByExample)
 
+	processQueue.close()
+	processQueue.join()
 	#print("finished!\n")
 
 def getExamplesWithTrueY(params, trueY):

@@ -42,6 +42,9 @@ class ImageExample:
 			hfile.close()
 
 			self.hlabels = self.hlabels[:100]
+			
+			if self.params.babyData == 1:
+				self.hlabels = self.hlabels[:50]
 
 	def processFile(self, inputFileLine):
 		sys.stdout.write("analyzing " + inputFileLine)
@@ -90,8 +93,12 @@ class ImageExample:
 	def psis(self):
 		(result, success) = CommonApp.tryGetFromCache(self)
 		if success:
+			if self.params.babyData == 1:
+				return result[:50,:]
+
 			return result
 
+		assert(self.params.babyData == 0)
 		features = []
 
 

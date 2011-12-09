@@ -216,7 +216,10 @@ class FMVCJob():
 
 def getFilepath(example):
 	feature_cache_dir = "/vision/u/rwitten/features"
-	return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
+	if example.params.babyData == 1:
+		return feature_cache_dir + "/%s_100.rlw"%(example.fileUUID)
+	else:
+		return feature_cache_dir + "/%s_%d.rlw"%(example.fileUUID, len(example.hlabels))
 	
 
 def tryGetFromCache(example):
