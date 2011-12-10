@@ -1,3 +1,4 @@
+import datetime
 import math
 import random
 import numpy
@@ -112,6 +113,7 @@ def selectForEachTrueY(taskEachTrueY):
 			(taskEachTrueY.curK, taskEachTrueY.curYbar) = (kyPair[0], kyPair[1])
 			map(setKYbar, taskEachTrueY.tasksByExample)
 			contributionsByExample = processQueue.map(contributionForEachExample, taskEachTrueY.tasksByExample)
+			#contributionsByExample = map(contributionForEachExample, taskEachTrueY.tasksByExample)
 			selectLowestContributors(taskEachTrueY, contributionsByExample)
 
 	processQueue.close()
@@ -193,7 +195,10 @@ def select(globalSPLVars, w, params):
 		initLocalSPLVars(taskEachTrueY, params.splParams.splMode) #randomly include fraction of examples
 		return taskEachTrueY
 
+	splstart = datetime.datetime.now() 
 	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
-	params.processQueue.map(selectForEachTrueY, tasksByTrueY)
+	params.processPool.map(selectForEachTrueY, tasksByTrueY)
+	splend = datetime.datetime.now()
+	print("SPL update took %f seconds\n"%((splend - splstart).total_seconds()))
 	#print("by the time I get printed, everything should be finished\n")
 	#map(selectForEachTrueY, tasksByTrueY)

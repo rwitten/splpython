@@ -1,6 +1,7 @@
 import cPickle
 import copy
 from datetime import datetime
+import multiprocessing
 import numpy
 from numpy import random
 import os
@@ -95,7 +96,7 @@ def findCuttingPlane(w, params):
 		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
 		s2 = datetime.now()
-		output = params.processQueue.map(singleFMVC, tasks)
+		output = params.processPool.map(singleFMVC, tasks)#, (len(tasks)/multiprocessing.cpu_count())+1)
 		#output = map(singleFMVC, tasks)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)

@@ -25,14 +25,18 @@ def setOptions(optdict, train_or_test):
 	params.supervised = False
 	params.numYLabels = 20
 	params.maxPsiGap = 0.00001
-	params.maxTimeIdle = 20
+	params.maxTimeIdle = 5
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
 	params.splParams.splInitIters = 2
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
+
 	params.babyData = 0
 	params.balanceClasses = 0
+	if '--splInitIters' in optdict:
+		params.splParams.splInitIters = int(optdict['--splInitIters'])
+
 	if '--balanceClasses' in optdict:
 		params.balanceClasses = int(optdict['--balanceClasses'])
 
@@ -45,6 +49,10 @@ def setOptions(optdict, train_or_test):
 	kernelFile = '/afs/cs.stanford.edu/u/rwitten/projects/multi_kernel_spl/data/allkernels_info.txt'
 	if '--maxPsiGap' in optdict:
 		params.maxPsiGap = float(optdict['--maxPsiGap'])
+	
+	params.initialModelFile = None
+	if '--initialModelFile' in optdict:
+		params.initialModelFile = optdict['--initialModelFile']
 
 	if '--maxTimeIdle' in optdict:
 		params.maxTimeIdle = int(optdict['--maxTimeIdle'])
@@ -107,11 +115,12 @@ def setOptions(optdict, train_or_test):
 		return params
 	else:
 		assert(train_or_test =='train')
-		params.processQueue = multiprocessing.Pool()
+		params.processPool = multiprocessing.Pool()
 		return params
 
+
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=']
  
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
