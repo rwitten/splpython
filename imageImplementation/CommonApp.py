@@ -177,7 +177,7 @@ def createSPLMat(job):
 def singleFMVC(job):
 	#print("enter singleFMVC\n")
 	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
-		return (0.0, sparse.dok_matrix((job.totalLength, 1)), 0.0)
+		return (0.0, sparse.dok_matrix((job.totalLength * job.numYLabels, 1)), 0.0)
 
 	splMat = createSPLMat(job)
 	fullWMat = matrixifyW(job.w, job)
