@@ -71,6 +71,7 @@ def createFMVCJob(example, w, params):
 	job.numYLabels = example.params.numYLabels
 	job.w = w
 	job.C = params.C
+	job.cost = example.cost
 	job.fileUUID = example.fileUUID
 	return (job)
 
@@ -208,7 +209,7 @@ def singleFMVC(job):
 	psiGiven = padCanonicalPsi(canonicalPsiGiven, job.givenY, job)
 	psiVec = psiGiven - psiBest
 	#print("exit singleFMVC\n")
-	return (const, copy.deepcopy(psiVec), topScore)
+	return (job.cost * const, job.cost * copy.deepcopy(psiVec), job.cost * topScore)
 
 class FMVCJob():
 	pass
@@ -245,3 +246,16 @@ def putInCache(example, result):
 	filepath = getFilepath(example)
 	example.psiCache.set(example.fileUUID, result)
 	CacheObj.cacheObject(filepath, result)
+
+def setExampleCosts(params):
+	examples = params.examples
+	if params.balanceClasses == 1:
+		counts = numpy.zeros((params.numYLabels, 1))
+		for example in examples:
+			counts[example.trueY, 0] += 1.0
+
+		for example in examples:
+			example.cost = float(params.numExamples) / (float(params.numYLabels) * counts[example.trueY, 0])
+	else:
+		for example in examples:
+			example.cost = 1.0

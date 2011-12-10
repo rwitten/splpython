@@ -9,6 +9,7 @@ import SPLSelector
 def main():
 	params = UserInput.getUserInput('train')	
 	ExampleLoader.loadExamples(params)
+	CommonApp.setExampleCosts(params)
 	w = CommonApp.PsiObject(params,False)
 	globalSPLVars = SPLSelector.SPLVar()
 	globalSPLVars.fraction = 1.0

@@ -32,6 +32,10 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
 	params.babyData = 0
+	params.balanceClasses = 0
+	if '--balanceClasses' in optdict:
+		params.balanceClasses = int(optdict['--balanceClasses'])
+
 	if '--babyData' in optdict:
 		params.babyData = int(optdict['--babyData'])
 
@@ -107,8 +111,8 @@ def setOptions(optdict, train_or_test):
 		return params
 
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=']
-
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=']
+ 
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 
