@@ -104,7 +104,7 @@ def selectForEachTrueY(taskEachTrueY):
 
 	curProcess = multiprocessing.current_process()
 	curProcess.daemon = False #daemonic processes can't have children
-	poolSize = min(getPoolSize(taskEachTrueY.totalNumExamples, len(taskEachTrueY.tasksByExample)), 1) #because Pool is too stupid to figure out how to do zero things with zero processes
+	poolSize = max(getPoolSize(taskEachTrueY.totalNumExamples, len(taskEachTrueY.tasksByExample)), 1)
 	processQueue = multiprocessing.Pool(poolSize)
 	numIters = taskEachTrueY.splInnerIters
 	for iter in range(numIters):
@@ -116,8 +116,12 @@ def selectForEachTrueY(taskEachTrueY):
 			#contributionsByExample = map(contributionForEachExample, taskEachTrueY.tasksByExample)
 			selectLowestContributors(taskEachTrueY, contributionsByExample)
 
+
+	deathstart = datetime.datetime.now()
 	processQueue.close()
 	processQueue.join()
+	deathend = datetime.datetime.now()
+	#print("destroying pool takes %f seconds\n"%((deathend-deathstart).total_seconds()))
 	#print("finished!\n")
 
 def getExamplesWithTrueY(params, trueY):
