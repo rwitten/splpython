@@ -180,7 +180,7 @@ def select(globalSPLVars, w, params):
 			taskEachExample = SPLJob()
 			taskEachExample.splMode = taskEachTrueY.splMode
 			taskEachExample.localSPLVars = example.localSPLVars
-			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, w, params)
+			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, params,w)
 			taskEachExample.whiteList = example.whiteList
 			return taskEachExample
 
@@ -202,6 +202,7 @@ def select(globalSPLVars, w, params):
 	splstart = datetime.datetime.now() 
 	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
 	params.processPool.map(selectForEachTrueY, tasksByTrueY)
+	#map(selectForEachTrueY, tasksByTrueY)
 	splend = datetime.datetime.now()
 	print("SPL update took %f seconds\n"%((splend - splstart).total_seconds()))
 	#print("by the time I get printed, everything should be finished\n")

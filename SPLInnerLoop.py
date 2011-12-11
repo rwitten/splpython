@@ -10,7 +10,7 @@ def optimize(w, globalSPLVars, params, iter):
 		w = SSVM.cuttingPlaneOptimize(w, params, iter)
 	else:
 		globalSPLVars.fraction = min(params.splParams.splInitFraction + params.splParams.splIncrement * float(iter - params.splParams.splInitIters), 1.0)
-		for i in range(params.splParams.splOuterIters):
+		for i in xrange(params.splParams.splOuterIters):
 			print("SPL outer iter %d\n"%(i))
 			SPLSelector.select(globalSPLVars, w, params)
 			w = SSVM.cuttingPlaneOptimize(w, params, iter)

@@ -54,10 +54,10 @@ def OneClassPsiObject(params):
 	result[0,0] = 1
 	return result
 
-def createFMVCJob(example, w, params):
+def createFMVCJob(example,params, w=None):
 	job = FMVCJob()
+
 	#print("starting %d\n"%(example.id))
-	job.psis = example.psis()
 	if params.splParams.splMode != 'CCCP':
 		job.localSPLVars = example.localSPLVars
 
@@ -70,10 +70,13 @@ def createFMVCJob(example, w, params):
 	job.givenY= example.trueY
 	job.givenH = example.h
 	job.numYLabels = example.params.numYLabels
-	job.w = w
 	job.C = params.C
 	job.cost = example.cost
 	job.fileUUID = example.fileUUID
+	job.psis = example.psis()
+	if w is not None:
+		job.w = w
+
 	return (job)
 
 def matrixifyW(w, params):
@@ -83,21 +86,34 @@ def tileW(w, params):
 	wlocal = w[(params.givenY * params.totalLength):((params.givenY + 1) * params.totalLength), 0]
 	return numpy.repeat(wlocal, (params.numYLabels), axis=1)
 
+def chunks(list, numChunks):
+	if numChunks>len(list):
+		return  [ [list[i]] for i in range(0, len(list))]
+		
+	chunkLength = len(list)/numChunks
+	return [list[i:i+chunkLength] for i in range(0, len(list), chunkLength)]
+
+def sumResults(result1, result2):
+	return ( result1[0]+result2[0], result1[1]+result2[1])
+
 def findCuttingPlane(w, params):
 	def jobify(example):
-		job = createFMVCJob(example, w, params)
+		job = createFMVCJob(example, params)
 		return (job)
 
-	def sumResults(result1, result2):
-		return ( result1[0]+result2[0], result1[1]+result2[1])
 
+	numJobs = multiprocessing.cpu_count()
 	from datetime import datetime
 	try:
 		s1 = datetime.now()
 		tasks = map(jobify, params.examples)
+		tasksChunked= chunks(tasks, numJobs)
+		ws = [w]*len(tasksChunked) #if len(tasks)<numJobs, numJobs!= len(tasksChunked)
+
+		jobs = zip(tasksChunked, ws)
+
 		s2 = datetime.now()
-		output = params.processPool.map(singleFMVC, tasks)#, (len(tasks)/multiprocessing.cpu_count())+1)
-		#output = map(singleFMVC, tasks)
+		output = params.processPool.map(batchFMVC, jobs)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
@@ -174,6 +190,18 @@ def createSPLMat(job):
 		assert(0)
 		return None
 		
+def batchFMVC(jobPsisHybrid):
+	jobsWithoutW= jobPsisHybrid[0]
+	w= jobPsisHybrid[1]
+
+	output = []
+
+	for jobWithoutW in jobsWithoutW:
+		jobWithoutW.w = w
+		output.append(singleFMVC(jobWithoutW))
+	
+	return  reduce(sumResults, output)
+
 def singleFMVC(job):
 	#print("enter singleFMVC\n")
 	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:

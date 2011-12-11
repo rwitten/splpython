@@ -28,7 +28,7 @@ def setOptions(optdict, train_or_test):
 	params.maxTimeIdle = 5
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
-	params.splParams.splInitIters = 2
+	params.splParams.splInitIters = 0
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
 

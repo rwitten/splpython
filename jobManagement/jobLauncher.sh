@@ -2,7 +2,7 @@ for C in 10
 do
 	for foldnum in 1
 	do
-		for class in 'total'
+		for class in 'med'
 		do
 			for algorithm in 'CCCP' 'SPL' 'SPL+' 'SPL++'
 			do
