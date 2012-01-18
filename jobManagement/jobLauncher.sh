@@ -1,10 +1,10 @@
-for C in 10
+for C in 1 10 100
 do
 	for foldnum in 1
 	do
-		for class in 'med'
+		for class in 'total'
 		do
-			for algorithm in 'CCCP' 'SPL' 'SPL+' 'SPL++'
+			for algorithm in 'CCCP'
 			do
 				basedir=`./name.sh $C $foldnum $class $algorithm`
 				scriptname=jobs/${basedir}.sh

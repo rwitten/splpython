@@ -9,20 +9,99 @@ import sys
 from imageImplementation import CommonApp
 
 #optimization problem is
-# minimize .5 |w|_2^2 + \frac{C}{n} \sum_{i=1}^n \Psi_i
-# (which we solve in the one slack formulation
+# minimize .5 |w|_2^2 + C\Psi
+# Psi1+F^T * w \geq delta  //matrix inequality
 
+# dual is
+# minimize .5 x^T F^T F*x + C \Psi
+# Psi1 +F^T F x \geq delta 
+
+#Psi \geq 0  
 
 # Define a stream printer to grab output from MOSEK
 def streamprinter(text):
 	pass
+#	print(text)
 
+
+def solveDualQP(constraintList, constraints, margins, params, env,task):
+	env = mosek.Env ()
+	env.set_Stream (mosek.streamtype.log, streamprinter)
+
+	task = env.Task(0,0)
+	#task.putintparam(mosek.iparam.sim_max_num_setbacks,	10**8)
+	#task.putdouparam(mosek.dparam.intpnt_nl_tol_near_rel, 2)
+	#task.putdouparam(mosek.dparam.intpnt_nl_tol_rel_gap, 10**-14)
+	#task.putdouparam(mosek.dparam.intpnt_tol_dfeas, 10**-15)
+	#task.putdouparam(mosek.dparam.intpnt_tol_step_size, 10**-15)
+
+		
+
+	task.putobjsense(mosek.objsense.minimize)
+	constraintsMatrix = sparse.hstack(constraintList)
+
+	FTF = (constraintsMatrix.T*constraintsMatrix).todense()
+
+
+	NUMVAR = FTF.shape[1] + 1
+	NUMCON = FTF.shape[1]
+
+	task.append(mosek.accmode.var,NUMVAR)
+	task.append(mosek.accmode.con,NUMCON) #1 more constraint
+
+	for j in range(NUMVAR-1):
+		task.putbound(mosek.accmode.var,j,mosek.boundkey.ra,-1e4,1e4)
+		task.putcj(j, 0)
+
+	task.putbound(mosek.accmode.var,NUMVAR-1,mosek.boundkey.lo,0,1e4)
+	task.putcj(NUMVAR-1,params.C)
+
+	for i in range(NUMCON):
+		task.putbound(mosek.accmode.con,i, mosek.boundkey.lo, margins[i], numpy.inf)
+		indices = range(NUMVAR)
+		constraint = (numpy.asarray(FTF[i,:])[0]).tolist() + [1]
+		task.putavec(mosek.accmode.con,i,indices, constraint)
+
+	for i in range(NUMVAR-1): #NO PSI HERE
+		for j in range(i+1):
+			task.putqobjij(i,j, FTF[i,j])
+#	task.putqobjij(NUMVAR-1,NUMVAR-1, .000001) #doesn't matter, makes matrix PD
+			
+	r=task.optimize()
+#	print("solution status is " + str(r))
+
+	xx = numpy.zeros(NUMVAR-1, float)
+	task.getsolutionslice(mosek.soltype.itr,
+                        mosek.solitem.xx,
+                        0,NUMVAR-1, # don't give back psi
+                        xx)
+
+	psi= numpy.zeros(1, float)
+	task.getsolutionslice(mosek.soltype.itr,
+                        mosek.solitem.xx,
+                        NUMVAR-1,NUMVAR, # give back psi
+                        psi)
+
+
+	wOut = constraintsMatrix *numpy.asmatrix(xx).T
+
+	primalObj = task.getprimalobj(mosek.soltype.itr)
+	dualObj = task.getdualobj(mosek.soltype.itr)
+
+	print("FOR DUAL values are primal %f dual %f" %(primalObj,dualObj))
+
+	def objFunc(input):
+		x = numpy.asmatrix(input).T
+		quadCost = .5*x.T*FTF*x
+		penaltyCost = params.C*max(0,numpy.max(numpy.asmatrix(margins).T-FTF*x))
+		return (quadCost + penaltyCost)[0,0]
+
+	return wOut,task.getprimalobj(mosek.soltype.itr), primalObj-dualObj
 
 #we want that [w \psi]^t [f_i 1] >= \delta_i
 def solveQP(constraints, margins, params,env,task):
 	NUMVAR = params.lengthW+1 #remember psi
 	NUMCON = len(margins)
-
 
 	task.append(mosek.accmode.con,1) #1 more constraint
 	
@@ -32,7 +111,7 @@ def solveQP(constraints, margins, params,env,task):
 
 	task.putobjsense(mosek.objsense.minimize)
 	r=task.optimize()
-	task.solutionsummary(mosek.streamtype.msg)
+#	task.solutionsummary(mosek.streamtype.msg)
 
 	xx = numpy.zeros(NUMVAR-1, float)
 	task.getsolutionslice(mosek.soltype.itr,
@@ -50,11 +129,13 @@ def solveQP(constraints, margins, params,env,task):
 	primalObj = task.getprimalobj(mosek.soltype.itr)
 	dualObj = task.getdualobj(mosek.soltype.itr)
 
+	print("FOR PRIMAL values are primal %f dual %f" % (primalObj,dualObj))
+
 	if abs(dualObj - primalObj)> params.maxDualityGap:
 		print("mosek says primal is %f and dual is %f response code %d" % ( primalObj, dualObj, r))
 
 	wOut = numpy.mat(xx).T
-	return wOut,task.getprimalobj(mosek.soltype.itr), dualObj-primalObj
+	return wOut,task.getprimalobj(mosek.soltype.itr), primalObj-dualObj
 
 def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 	psi = 0
@@ -107,6 +188,7 @@ def computeObjective(w, params):
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint)
 
+
 def initializeMosek(params):
 	env = mosek.Env ()
 	task = env.Task(0,0)
@@ -115,7 +197,7 @@ def initializeMosek(params):
 	for j in range(NUMVAR-1):
 		task.putbound(mosek.accmode.var,j,mosek.boundkey.ra,-1e4,1e4)
 		task.putcj(j, 0)
-	qsubi = range(0, NUMVAR-1)	
+	qsubi = range(0, NUMVAR-1)
 	qsubj = range(0, NUMVAR-1)
 	qval = [1]* (NUMVAR-1)
 	task.putbound(mosek.accmode.var,NUMVAR-1,mosek.boundkey.lo,0,1e4)
@@ -148,8 +230,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 	print("computing first cutting plane")	
 	objective,margin, constraint = computeObjective(w, params)
 	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
-	constraints = []
-	constraintList = []
+	constraints = None
 	idle = []
 	margins = []
 
@@ -170,11 +251,18 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		constraints.append( (xs,values)) 
 		margins.append(margin)
 		startqp = datetime.datetime.now()	
-		(w, newLB, dualityGap) = solveQP(constraints, margins, params,env,task)
-		
+		(w, newLB, dualityGap) = solveDualQP(constraintList,constraints, margins, params,env,task)
+
+		(wPrimal, newLBPrimal, dualityGapPrimal) = solveQP(constraints, margins, params,env,task)
+
+		print("distance is %f" % numpy.linalg.norm(w-wPrimal))
+#		constraintMatrix = sparse.hstack(constraintList)
+#		dualScores = constraintMatrix.T * w
+#		primalScores= constraintMatrix.T * wPrimal
+	
 		endqp = datetime.datetime.now()	
 
-		dropConstraints(w, constraintList, margins, idle, constraints, task, params)
+		#dropConstraints(w, constraintList, margins, idle, constraints, task, params)
 
 		if (newLB > LB) and abs(dualityGap)<=params.maxDualityGap:
 			LB = newLB
@@ -194,7 +282,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		endtime= datetime.datetime.now()
 
 		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
-		print( "New stab at UB was %f" % newUB)
+#		print( "New stab at UB was %f" % newUB)
 		print( "Total took %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 		iter+=1
 		sys.stdout.flush()

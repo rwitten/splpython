@@ -113,7 +113,8 @@ def findCuttingPlane(w, params):
 		jobs = zip(tasksChunked, ws)
 
 		s2 = datetime.now()
-		output = params.processPool.map(batchFMVC, jobs)
+		output = map(batchFMVC, jobs)
+#		output = params.processPool.map(batchFMVC, jobs)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
@@ -121,9 +122,9 @@ def findCuttingPlane(w, params):
 		print "Caught KeyboardInterrupt, terminating workers"
 		sys.exit(1)
 
-	print( "first " + str( (s2-s1).total_seconds()))
-	print( "second" + str( (s3-s2).total_seconds()))
-	print( "third " + str( (s4-s3).total_seconds()))
+#	print( "first " + str( (s2-s1).total_seconds()))
+#	print( "second" + str( (s3-s2).total_seconds()))
+#	print( "third " + str( (s4-s3).total_seconds()))
 
 
 	const = const/len(params.examples)
@@ -172,6 +173,7 @@ def createDeltaVec(job):
 
 	return deltaVec
 
+#This matrix is Hadamarded with a matrixified w; each column corresponds to a different class section of w.  In the case of SPL+, all columns of this matrix are the same.
 def createSPLMat(job):
 	if job.splMode == 'SPL' or job.splMode == 'CCCP':
 		return numpy.ones((job.totalLength, job.numYLabels))
@@ -228,16 +230,15 @@ def singleFMVC(job):
 	bestH = topViolatorScorers[0, bestY]
 	const = deltaVec[0, bestY]
 	#print("splMat is %d by %d\n"%(splMat.shape[0], splMat.shape[1]))
-	diagVec = numpy.zeros((1, job.totalLength))
-	diagVec[0,:] = (splMat[:,bestY]).T
-	splDiag = sparse.spdiags(diagVec, numpy.array([0]), job.totalLength, job.totalLength)
-	canonicalPsiBest = splDiag * (job.psis[bestH,:]).T
-	#print("canonicalPsiBest is %d by %d\n"%(canonicalPsiBest.shape[0], canonicalPsiBest.shape[1]))
-	canonicalPsiGiven = splDiag * (job.psis[job.givenH,:]).T
-	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, job)
+
+	vMask = numpy.asmatrix((splMat[:,bestY])).T
+	canonicalPsiGiven = sparse.csr_matrix(numpy.multiply(vMask, (job.psis[job.givenH,:].T).todense() ))
+	canonicalPsiBest = sparse.csr_matrix(numpy.multiply(vMask, (job.psis[bestH,:].T).todense() ))
+	
 	psiGiven = padCanonicalPsi(canonicalPsiGiven, job.givenY, job)
+	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, job)
+
 	psiVec = psiGiven - psiBest
-	#print("exit singleFMVC\n")
 	return (job.cost * const, job.cost * copy.deepcopy(psiVec), job.cost * topScore)
 
 class FMVCJob():
