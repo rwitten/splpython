@@ -1,4 +1,4 @@
-for C in 1 10 100
+for C in 10 100 1000
 do
 	for foldnum in 1
 	do

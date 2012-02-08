@@ -113,8 +113,8 @@ def findCuttingPlane(w, params):
 		jobs = zip(tasksChunked, ws)
 
 		s2 = datetime.now()
-		output = map(batchFMVC, jobs)
-#		output = params.processPool.map(batchFMVC, jobs)
+#		output = map(batchFMVC, jobs)
+		output = params.processPool.map(batchFMVC, jobs)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
