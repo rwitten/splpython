@@ -29,14 +29,13 @@ def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
 def optimize(w, globalSPLVars, params):
 	random.seed(params.seed)
 	bestObj = numpy.inf
-	wBest = w
 	initLatentVariables(w, params)
 	for iter in xrange(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
 		w = SPLInnerLoop.optimize(w, globalSPLVars, params, iter)
 		print("Imputing h")
 		HImputation.impute(w, params) #this may interact with SPL at some point
-		(converged, bestObj, wBest) = checkConvergence(w, globalSPLVars, params, bestObj, wBest)
+		(converged, bestObj, w) = checkConvergence(w, globalSPLVars, params, bestObj, w)
 		if converged and iter > params.splParams.splInitIters and globalSPLVars.fraction >= 1.0:
 			print("Breaking because of convergence")
 			break
@@ -47,4 +46,4 @@ def optimize(w, globalSPLVars, params):
 		CacheObj.cacheObject(params.modelFile + "."+str(iter), w)
 		
 
-	return wBest
+	return w

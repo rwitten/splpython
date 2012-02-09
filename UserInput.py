@@ -1,27 +1,10 @@
 import getopt
-from multiprocessing import Process
+import multiprocessing
 #from multiprocessing import dummy as multiprocessing
 import sys
 
 from Params import Params
 
-
-class  ConsumerProcess( Process ):
-    """Consumes items from a Queue.
-    
-    The "target" must be a function which expects an iterable as it's
-    only argument.  Therefore, the args value is not used here.
-    """
-    def __init__( self, name, params, input_queue, output_queue):
-        super( ConsumerProcess, self ).__init__( name=name )
-        self.input_queue= input_queue
-        self.output_queue= output_queue
-        self.params = params 
-
-    def run( self ):
-        while 1:
-            bundle = self.input_queue.get()
-            self.output_queue.put(bundle[0]( bundle[1], self.params))
 
 def setOptions(optdict, train_or_test):
 	assert('--dataFile' in optdict)
@@ -32,6 +15,7 @@ def setOptions(optdict, train_or_test):
 	assert(len(modelFile) > 0)
 	
 	params = Params()
+	params.trainOrTest = train_or_test 
 	params.splParams = Params()
 	params.epsilon = .01
 	params.C = 1.0
@@ -134,11 +118,11 @@ def setOptions(optdict, train_or_test):
 	else:
 		assert(train_or_test =='train')
 		numConsumers = multiprocessing.cpu_count()
-		params.inputQueues = [Queue() for i in range(numConsumers)]
-		params.outputQueue= Queue()
-		params.processes = [ConsumerProcess(str(i),i , inputQueues[i], outputQueue) for i in range(numConsumers)]
-		for i in range(numConsumers):
-			params.processes[p].start()
+#		params.inputQueues = [Queue() for i in range(numConsumers)]
+#		params.outputQueue= Queue()
+#		params.processes = [ConsumerProcess(str(i),i , inputQueues[i], outputQueue) for i in range(numConsumers)]
+#		for i in range(numConsumers):
+#			params.processes[p].start()
 
 		params.processPool = multiprocessing.Pool()
 		return params
@@ -148,7 +132,6 @@ def getUserInput(train_or_test):
 	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=']
 
 
-	params.trainOrTest = train_or_test 
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 
