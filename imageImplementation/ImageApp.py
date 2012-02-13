@@ -22,11 +22,13 @@ class ImageExample:
 		self.psiCache = params.cache
 
 
-	def findScoreAllClasses(self, w):
+	def findScoreAllClasses(self, w, countDelta = False):
 		results = {}
 		for label in self.params.ylabels:
 			(h, score, vec) = self.highestScoringLV(w, label)
 			results[label] = score
+			if countDelta and self.trueY != label:
+				results[label] += 1
 		return results
 
 	def fillHLabels(self, filename):

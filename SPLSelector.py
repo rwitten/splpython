@@ -173,37 +173,88 @@ def getNumWhiteListed(params, trueYExamples):
 def getPoolSize(totalNumExamples, maxNumAlive):
 	return int(math.ceil(float(maxNumAlive) / float(totalNumExamples) * 40.0))
 
+def computeViolation(scoreDict, trueY):
+	maxOpposingScore = -1e10
+	for key in scoreDict:
+		if key != trueY:
+			if maxOpposingScore < scoreDict[key]:
+				maxOpposingScore= scoreDict[key]
+	
+	return scoreDict[trueY] - maxOpposingScore
+
+def findCutoffs(allViolations, labels, numYLabels,fraction):
+	cutoffDict= {}
+	for index in range(numYLabels):
+		relevantExamples = filter( lambda violationLabelTuple : violationLabelTuple[1]==index ,zip(allViolations, labels))
+		violations = map(lambda violationLabelTuple: violationLabelTuple[0], relevantExamples)
+		violations.sort()
+		print("len(violations) %f fraction %f index %f" %( len(violations), fraction, int(round(len(violations)*fraction+.01))-1 ))
+		assert(len(violations)>0)
+		cutoffDict[index] = violations[int(round(len(violations)*fraction+.01))-1]
+
+	return cutoffDict
+	
+
 def select(globalSPLVars, w, params):
-	def jobifyEachTrueY(trueY):
-		taskEachTrueY = SPLJob()
-		def jobifyEachExample(example):
-			taskEachExample = SPLJob()
-			taskEachExample.splMode = taskEachTrueY.splMode
-			taskEachExample.localSPLVars = example.localSPLVars
-			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, params,w)
-			taskEachExample.whiteList = example.whiteList
-			return taskEachExample
+	random.seed()
+	scorings = [example.findScoreAllClasses(w,True) for example in params.examples]
+	labels = map( lambda x : x.trueY, params.examples)
+	violations = map(computeViolation, scorings, labels)
+	cutoffDict = findCutoffs(violations, labels, params.numYLabels,globalSPLVars.fraction)
+	for index in range(len(params.examples)):
+		if not params.splParams.splControl:
+			if cutoffDict[params.examples[index].trueY] >= violations[index]:
+				params.examples[index].localSPLVars.selected = 1.0
+			else:
+				params.examples[index].localSPLVars.selected = 0
+		else:
+			temp = random.random()
+			print("drew a %f" % temp)
+			print("value is " + str(temp<globalSPLVars.fraction))
+			if temp<globalSPLVars.fraction:
+				params.examples[index].localSPLVars.selected = 1.0
+			else:
+				params.examples[index].localSPLVars.selected = 0
 
-		taskEachTrueY.totalNumExamples = params.numExamples
-		taskEachTrueY.numYLabels = params.numYLabels
-		taskEachTrueY.numKernels = params.numKernels
-		taskEachTrueY.splMode = params.splParams.splMode
-		taskEachTrueY.splInnerIters = params.splParams.splInnerIters
-		taskEachTrueY.fraction = globalSPLVars.fraction
-		trueYExamples = getExamplesWithTrueY(params, trueY)
-		if params.splParams.splMode == 'SPL++':
-			taskEachTrueY.numWhiteListed = getNumWhiteListed(params, trueYExamples)
-
-		taskEachTrueY.trueY = trueY
-		taskEachTrueY.tasksByExample = map(jobifyEachExample, trueYExamples) #hopefully won't have to parallelize this
-		initLocalSPLVars(taskEachTrueY, params.splParams.splMode) #randomly include fraction of examples
-		return taskEachTrueY
-
-	splstart = datetime.datetime.now() 
-	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
-	params.processPool.map(selectForEachTrueY, tasksByTrueY)
-	#map(selectForEachTrueY, tasksByTrueY)
-	splend = datetime.datetime.now()
-	print("SPL update took %f seconds\n"%((splend - splstart).total_seconds()))
-	#print("by the time I get printed, everything should be finished\n")
-	#map(selectForEachTrueY, tasksByTrueY)
+	for label in range(params.numYLabels):
+		total = 0
+		totalOn = 0
+		for example in params.examples:
+			if example.trueY==label:
+				totalOn += example.localSPLVars.selected
+				total+=1
+		print("For label %d totalOn %f and total %f" %( label, totalOn, total))
+	print([example.localSPLVars.selected for example in params.examples])
+#	def jobifyEachTrueY(trueY):
+#		taskEachTrueY = SPLJob()
+#		def jobifyEachExample(example):
+#			taskEachExample = SPLJob()
+#			taskEachExample.splMode = taskEachTrueY.splMode
+#			taskEachExample.localSPLVars = example.localSPLVars
+#			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, params,w)
+#			taskEachExample.whiteList = example.whiteList
+#			return taskEachExample
+#
+#		taskEachTrueY.totalNumExamples = params.numExamples
+#		taskEachTrueY.numYLabels = params.numYLabels
+#		taskEachTrueY.numKernels = params.numKernels
+#		taskEachTrueY.splMode = params.splParams.splMode
+#		taskEachTrueY.splInnerIters = params.splParams.splInnerIters
+#		taskEachTrueY.fraction = globalSPLVars.fraction
+#		trueYExamples = getExamplesWithTrueY(params, trueY)
+#		if params.splParams.splMode == 'SPL++':
+#			taskEachTrueY.numWhiteListed = getNumWhiteListed(params, trueYExamples)
+#
+#		taskEachTrueY.trueY = trueY
+#		taskEachTrueY.tasksByExample = map(jobifyEachExample, trueYExamples) #hopefully won't have to parallelize this
+#		initLocalSPLVars(taskEachTrueY, params.splParams.splMode) #randomly include fraction of examples
+#		return taskEachTrueY
+#
+#	splstart = datetime.datetime.now() 
+#	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
+#	params.processPool.map(selectForEachTrueY, tasksByTrueY)
+#	#map(selectForEachTrueY, tasksByTrueY)
+#	splend = datetime.datetime.now()
+#	print("SPL update took %f seconds\n"%((splend - splstart).total_seconds()))
+#	#print("by the time I get printed, everything should be finished\n")
+#	#map(selectForEachTrueY, tasksByTrueY)

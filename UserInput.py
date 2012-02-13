@@ -33,9 +33,14 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splInitIters = 0
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
+	params.splParams.splControl= 0
 
 	params.babyData = 0
 	params.balanceClasses = 0
+
+	assert('--splControl' in optdict)
+	params.splParams.splControl = int(optdict['--splControl'])
+
 	if '--splInitIters' in optdict:
 		params.splParams.splInitIters = int(optdict['--splInitIters'])
 
@@ -129,7 +134,7 @@ def setOptions(optdict, train_or_test):
 
 
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=', 'splControl=']
 
 
 	if train_or_test == 'test':

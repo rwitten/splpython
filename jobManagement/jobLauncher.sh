@@ -6,48 +6,51 @@ do
 		do
 			for algorithm in 'CCCP' 'SPL'
 			do
-				basedir=`./name.sh $C $foldnum $class $algorithm`
-				scriptname=jobs/${basedir}.sh
+				for splControl in  0 1
+				do
+					basedir=`./name.sh $C $foldnum $class $algorithm $splControl`
+					scriptname=jobs/${basedir}.sh
 
-				CHANGE_DIR="cd $SPL_BASE_DIR"
-
-
-				TRAIN="$EPYTHON train.py --initialModelFile=goodStartingPoints/C10_iter2.model --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
-				TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
-
-				TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
-
-				command_starttimestamp="date > ./output/${basedir}.starttime"
-				command_hostname="hostname> ./output/${basedir}.hostname"
-				command_endtimestamp="date > ./output/${basedir}.endtime" 
-				command_starttime='START=$(date +%s)'
-				command_endtime='END=$(date +%s)'
-				command_difference='DIFF=$(( $END - $START ))'
-				command_time_passed="echo \${DIFF} > ./output/${basedir}.totaltime"
+					CHANGE_DIR="cd $SPL_BASE_DIR"
 
 
-				echo $CHANGE_DIR > $scriptname
-				echo $command_starttimestamp >> $scriptname
-				echo $command_hostname >> $scriptname
-				echo $command_starttime >> $scriptname
+					TRAIN="$EPYTHON train.py --initialModelFile=goodStartingPoints/CCCP.model.cpz --splControl=${splControl} --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
+					TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
 
-				echo $TRAIN >> $scriptname
-				echo $TEST_ON_TRAIN >> $scriptname
-				echo $TEST_ON_TEST >> $scriptname
+					TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
 
-				echo $command_endtimestamp >> $scriptname
-				echo $command_endtime >> $scriptname
-				echo $command_difference >> $scriptname
-				echo $command_time_passed >> $scriptname
-				chmod +x $scriptname
+					command_starttimestamp="date > ./output/${basedir}.starttime"
+					command_hostname="hostname> ./output/${basedir}.hostname"
+					command_endtimestamp="date > ./output/${basedir}.endtime" 
+					command_starttime='START=$(date +%s)'
+					command_endtime='END=$(date +%s)'
+					command_difference='DIFF=$(( $END - $START ))'
+					command_time_passed="echo \${DIFF} > ./output/${basedir}.totaltime"
 
-				if [ -z $1 ]
-				then
-					echo "Not posting $scriptname" 
-				else
-					echo "Posting $scriptname"
-					qsub -q daglab $scriptname
-				fi
+
+					echo $CHANGE_DIR > $scriptname
+					echo $command_starttimestamp >> $scriptname
+					echo $command_hostname >> $scriptname
+					echo $command_starttime >> $scriptname
+
+					echo $TRAIN >> $scriptname
+					echo $TEST_ON_TRAIN >> $scriptname
+					echo $TEST_ON_TEST >> $scriptname
+
+					echo $command_endtimestamp >> $scriptname
+					echo $command_endtime >> $scriptname
+					echo $command_difference >> $scriptname
+					echo $command_time_passed >> $scriptname
+					chmod +x $scriptname
+
+					if [ -z $1 ]
+					then
+						echo "Not posting $scriptname" 
+					else
+						echo "Posting $scriptname"
+						qsub -q daglab $scriptname
+					fi
+				done
 			done
 		done
 	done

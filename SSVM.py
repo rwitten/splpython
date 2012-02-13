@@ -31,14 +31,11 @@ def solveDualQPV2(FTF, constraintsMatrix, margins, idle, params, env,task):
 		cost = (.5 * arg.T* FTF * arg)[0,0]
 		cost += max(0,params.C* numpy.max(numpy.asmatrix(margins).T - FTF* arg ))
 		return cost
-	env = mosek.Env ()
-	task = env.Task(0,0)
-	task.putobjsense(mosek.objsense.maximize)
+
 	NUMVAR = FTF.shape[1]
 	NUMCON = 1
 
-	task.append(mosek.accmode.var,NUMVAR)
-	task.append(mosek.accmode.con,NUMCON) #1 more constraint
+	task.append(mosek.accmode.var,1)
 
 	for j in range(NUMVAR):
 		task.putbound(mosek.accmode.var,j,mosek.boundkey.lo,0,numpy.inf)
@@ -199,11 +196,15 @@ def computeObjective(w, params):
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint)
 
-
-def cuttingPlaneOptimize(w, params, outerIter):
-#	env,task = initializeMosek(params)
+def initializeMosek(params):
 	env = mosek.Env ()
 	task = env.Task(0,0)
+	task.putobjsense(mosek.objsense.maximize)
+	task.append(mosek.accmode.con,1) #one constraint at all times
+	return env, task
+
+def cuttingPlaneOptimize(w, params, outerIter):
+	env,task = initializeMosek(params)
 
 	objective,margin, constraint = computeObjective(w, params)
 	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
