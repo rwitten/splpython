@@ -83,8 +83,9 @@ def createFMVCJob(example,params, w=None):
 def matrixifyW(w, params):
 	return w.reshape( (params.totalLength, len(params.ylabels)), order='F')
 
-def tileW(w, params):
-	wlocal = w[(params.givenY * params.totalLength):((params.givenY + 1) * params.totalLength), 0]
+def tileW(w, example):
+	params = example.params
+	wlocal = w[(example.trueY * params.totalLength):((example.trueY + 1) * params.totalLength), 0]
 	return numpy.repeat(wlocal, (params.numYLabels), axis=1)
 
 def chunks(list, numChunks):
@@ -104,17 +105,20 @@ def accessExamples(params, blob, mapper, combiner):
 		queue.put(message)
 
 	output = []
-
 	while len(output) < len(params.inputQueues):
-		output.append(params.outputQueue.get())
+		A = params.outputQueue.get()
+		output.append(A)
 
 	return output
 		
 	
 
 def findCuttingPlane(w, params):
-	reduce(sumResults,accessExamples(params, w, singleFMVC, sumResults))
-	return
+	output = accessExamples(params, w, singleFMVC, sumResults)
+	const,vec= reduce(sumResults, output)
+	const = const/params.numExamples
+	vec = vec/params.numExamples
+	return (const,vec)
 	def jobify(example):
 		job = createFMVCJob(example, params)
 		return (job)
@@ -166,45 +170,47 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 
 	return (bestH, maxScore,psiVec)
 
-def highestScoringLVUtility(w, labelY, job, splMat):
-	modifiedPsis = job.psis * splMat
-	return highestScoringLVGeneral(w, labelY, job, modifiedPsis)
-		
-def getPsi(y,h, job, splMat):
-	psi = splMat * (job.psis[h,:]).T
-	return padCanonicalPsi(psi, y, job)
+#def highestScoringLVUtility(w, labelY, job, splMat):
+#	modifiedPsis = job.psis * splMat
+#	return highestScoringLVGeneral(w, labelY, job, modifiedPsis)
+#		
+#def getPsi(y,h, job, splMat):
+#	psi = splMat * (job.psis[h,:]).T
+#	return padCanonicalPsi(psi, y, job)
 
-def createDeltaVec(job):
+def createDeltaVec(w, example):
+	params = example.params
 	deltaVec = None
-	if job.splMode == 'SPL' or job.splMode == 'CCCP':
-		deltaVec = numpy.ones((1, job.numYLabels))
-	elif job.splMode == 'SPL+':
-		deltaVec = numpy.repeat(numpy.array([numpy.mean(job.localSPLVars.selected, axis=1)]), (job.numYLabels), axis=1)
-	elif job.splMode == 'SPL++':
-		deltaVec = numpy.zeros((1, job.numYLabels))
-		for labelY in range(job.numYLabels):
-			deltaVec[0, labelY] = numpy.mean(job.localSPLVars.selected[labelY], axis = 1)
+	if params.splParams.splMode == 'SPL' or params.splParams.splMode == 'CCCP':
+		deltaVec = numpy.ones((1, params.numYLabels))
+	elif params.splParams.splMode == 'SPL+':
+		deltaVec = numpy.repeat(numpy.array([numpy.mean(params.localSPLVars.selected, axis=1)]), (params.numYLabels), axis=1)
+	elif params.splParams.splMode == 'SPL++':
+		deltaVec = numpy.zeros((1, params.numYLabels))
+		for labelY in range(params.numYLabels):
+			deltaVec[0, labelY] = numpy.mean(params.localSPLVars.selected[labelY], axis = 1)
 	else:
 		assert(0)
 
-	for labelY in range(job.numYLabels):
-		deltaVec[0, labelY] = deltaVec[0, labelY] * delta(job.givenY, labelY)
+	for labelY in range(params.numYLabels):
+		deltaVec[0, labelY] = deltaVec[0, labelY] * delta(example.trueY, labelY)
 
 	return deltaVec
 
 #This matrix is Hadamarded with a matrixified w; each column corresponds to a different class section of w.  In the case of SPL+, all columns of this matrix are the same.
-def createSPLMat(job):
-	if job.splMode == 'SPL' or job.splMode == 'CCCP':
-		return numpy.ones((job.totalLength, job.numYLabels))
-	elif job.splMode == 'SPL+':
-		selectionVec = (job.localSPLVars.selected).T
-		columnVec = numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, job.kernelLengths, axis=0)), axis=0)
-		return numpy.repeat(columnVec, (job.numYLabels), axis=1)
-	elif job.splMode == 'SPL++':
+def createSPLMat(example):
+	params = example.params
+	if params.splParams.splMode == 'SPL' or params.splParams.splMode == 'CCCP':
+		return numpy.ones((params.totalLength, params.numYLabels))
+	elif params.splParams.splMode == 'SPL+':
+		selectionVec = (example.localSPLVars.selected).T
+		columnVec = numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, params.kernelLengths, axis=0)), axis=0)
+		return numpy.repeat(columnVec, (params.numYLabels), axis=1)
+	elif params.splParams.splMode== 'SPL++':
 		columnVecs = []
-		for labelY in range(job.numYLabels):
-			selectionVec = (job.localSPLVars.selected[labelY]).T
-			columnVecs.append(numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, job.kernelLengths, axis=0)), axis=0))
+		for labelY in range(params.numYLabels):
+			selectionVec = (examples.localSPLVars.selected[labelY]).T
+			columnVecs.append(numpy.concatenate((numpy.ones((1,1)), numpy.repeat(selectionVec, params.kernelLengths, axis=0)), axis=0))
 
 		return numpy.concatenate(columnVecs, axis=1)
 	else:
@@ -213,40 +219,41 @@ def createSPLMat(job):
 		
 def singleFMVC(w, example):
 	#print("enter singleFMVC\n")
-	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
-		return (0.0, sparse.dok_matrix((job.totalLength * job.numYLabels, 1)), 0.0)
+	if example.params.splParams.splMode == 'SPL' and example.localSPLVars.selected == 0.0:
+		return (0.0, sparse.dok_matrix((example.params.totalLength * example.params.numYLabels, 1)), 0.0)
 
-	splMat = createSPLMat(job)
-	fullWMat = matrixifyW(job.w, job)
-	givenWMat = tileW(job.w, job)
-	deltaVec = createDeltaVec(job)
+	splMat = createSPLMat(example)
+	fullWMat = matrixifyW(w, example.params)
+	givenWMat = tileW(w, example)
+	deltaVec = createDeltaVec(w, example)
+
 	A = splMat * numpy.array(fullWMat)
 	B = splMat * numpy.array(givenWMat)
-	violatorScores = job.psis * numpy.matrix(A)
-	givenScores = job.psis[job.givenH,:] * numpy.matrix(B)
+	violatorScores = example.psis() * numpy.matrix(A)
+	givenScores = example.psis()[example.h,:] * numpy.matrix(B)
 	topViolatorScores = violatorScores.max(0)
 	topViolatorScorers = violatorScores.argmax(0)
 	totalScores = topViolatorScores + deltaVec - givenScores
-	for whiteLabel in job.whiteList:
+	for whiteLabel in example.whiteList:
 		totalScores[0, whiteLabel] = -1e10 #This ensures that none of the labels in the whitelist will get chosen as the MVC
 
 	topScore = (totalScores.max(1))[0,0]
 	assert(topScore >= -1e-5)
 	bestY = (totalScores.argmax(1))[0,0]
-	assert(bestY not in job.whiteList)
+	assert(bestY not in example.whiteList)
 	bestH = topViolatorScorers[0, bestY]
 	const = deltaVec[0, bestY]
 	#print("splMat is %d by %d\n"%(splMat.shape[0], splMat.shape[1]))
 
 	vMask = numpy.asmatrix((splMat[:,bestY])).T
-	canonicalPsiGiven = sparse.csr_matrix(numpy.multiply(vMask, (job.psis[job.givenH,:].T).todense() ))
-	canonicalPsiBest = sparse.csr_matrix(numpy.multiply(vMask, (job.psis[bestH,:].T).todense() ))
+	canonicalPsiGiven = sparse.csr_matrix(numpy.multiply(vMask, (example.psis()[example.h,:].T).todense() ))
+	canonicalPsiBest = sparse.csr_matrix(numpy.multiply(vMask, (example.psis()[bestH,:].T).todense() ))
 	
-	psiGiven = padCanonicalPsi(canonicalPsiGiven, job.givenY, job)
-	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, job)
+	psiGiven = padCanonicalPsi(canonicalPsiGiven, example.trueY, example.params)
+	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, example.params)
 
 	psiVec = psiGiven - psiBest
-	return (job.cost * const, job.cost * copy.deepcopy(psiVec), job.cost * topScore)
+	return (example.cost * const, example.cost * copy.deepcopy(psiVec), example.cost * topScore)
 
 
 def getFilepath(example):

@@ -191,7 +191,6 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
 	#print("w is" + repr(w.shape) )
-	import pdb ; pdb.set_trace()	
 	(margin, constraint) = CommonApp.findCuttingPlane(w, params)
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint)

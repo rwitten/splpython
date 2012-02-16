@@ -20,7 +20,8 @@ class  ConsumerProcess( Process ):
 			(blob, mapper, reducer) = self.input_queue.get()
 			mapped = [mapper(blob, example) for example in self.examples]
 			if reducer is not None:
-				self.output_queue.put(reducer(mapped))
+				A = reduce(reducer,mapped)
+				self.output_queue.put(A)
 			else:
 				self.output_queue.put(mapped)
 
