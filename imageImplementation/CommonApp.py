@@ -12,6 +12,7 @@ import sys
 
 import CacheObj
 import ImagePsi
+import logging
 
 #This is where we put stuff that's common to all applications.
 
@@ -96,7 +97,24 @@ def chunks(list, numChunks):
 def sumResults(result1, result2):
 	return ( result1[0]+result2[0], result1[1]+result2[1])
 
+def accessExamples(params, blob, mapper, combiner):
+	message = (blob,mapper, combiner)
+
+	for queue in params.inputQueues:
+		queue.put(message)
+
+	output = []
+
+	while len(output) < len(params.inputQueues):
+		output.append(params.outputQueue.get())
+
+	return output
+		
+	
+
 def findCuttingPlane(w, params):
+	reduce(sumResults,accessExamples(params, w, singleFMVC, sumResults))
+	return
 	def jobify(example):
 		job = createFMVCJob(example, params)
 		return (job)
@@ -113,8 +131,9 @@ def findCuttingPlane(w, params):
 		jobs = zip(tasksChunked, ws)
 
 		s2 = datetime.now()
-#		output = map(batchFMVC, jobs)
-		output = params.processPool.map(batchFMVC, jobs)
+		print("done")
+#		output = params.processPool.map(batchFMVC, jobs)
+		output = map(batchFMVC, jobs)
 		s3 = datetime.now()
 		const,vec= reduce(sumResults, output)
 		s4 = datetime.now()
@@ -192,19 +211,7 @@ def createSPLMat(job):
 		assert(0)
 		return None
 		
-def batchFMVC(jobPsisHybrid):
-	jobsWithoutW= jobPsisHybrid[0]
-	w= jobPsisHybrid[1]
-
-	output = []
-
-	for jobWithoutW in jobsWithoutW:
-		jobWithoutW.w = w
-		output.append(singleFMVC(jobWithoutW))
-	
-	return  reduce(sumResults, output)
-
-def singleFMVC(job):
+def singleFMVC(w, example):
 	#print("enter singleFMVC\n")
 	if job.splMode == 'SPL' and job.localSPLVars.selected == 0.0:
 		return (0.0, sparse.dok_matrix((job.totalLength * job.numYLabels, 1)), 0.0)
@@ -241,8 +248,6 @@ def singleFMVC(job):
 	psiVec = psiGiven - psiBest
 	return (job.cost * const, job.cost * copy.deepcopy(psiVec), job.cost * topScore)
 
-class FMVCJob():
-	pass
 
 def getFilepath(example):
 	feature_cache_dir = "/vision/u/rwitten/features"
@@ -253,9 +258,6 @@ def getFilepath(example):
 	
 
 def tryGetFromCache(example):
-	if example.fileUUID in example.psiCache.map.keys():
-		return (example.psiCache.get(example.fileUUID), True)
-
 	filepath = getFilepath(example)
 	if os.path.exists(filepath):
 #		result = CacheObj.loadObject(filepath)
@@ -265,7 +267,6 @@ def tryGetFromCache(example):
 			sys.stdout.write("some sort of disk corruption\n")
 			sys.stdout.flush()
 			return (None, False)
-		example.psiCache.set(example.fileUUID,result)
 		sys.stdout.write("%")
 		sys.stdout.flush()
 		return (result, True)
@@ -274,11 +275,15 @@ def tryGetFromCache(example):
 
 def putInCache(example, result):
 	filepath = getFilepath(example)
-	example.psiCache.set(example.fileUUID, result)
 	CacheObj.cacheObject(filepath, result)
 
+def oneCost(ignore,x):
+	x.cost = 1
+
 def setExampleCosts(params):
-	examples = params.examples
+	assert(params.balanceClasses!=1)
+	accessExamples(params, None, oneCost, None) 
+	return
 	if params.balanceClasses == 1:
 		counts = numpy.zeros((params.numYLabels, 1))
 		for example in examples:

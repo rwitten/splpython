@@ -12,14 +12,13 @@ import sys
 import BBoxComputation
 import CommonApp
 import ImagePsi
-import PsiCache
 
 class ImageExample:
 	def __init__(self, params, exampleNumber, input):
 		self.params = params
 		self.id = exampleNumber
 		self.processFile(input)
-		self.psiCache = params.cache
+		self.psisMatrix = None
 
 
 	def findScoreAllClasses(self, w, countDelta = False):
@@ -93,14 +92,17 @@ class ImageExample:
 			return psi
 
 	def psis(self):
-		(result, success) = CommonApp.tryGetFromCache(self)
-		if success:
-			if self.params.babyData == 1:
-				return result[:50,:]
+		if self.psisMatrix is not None:
+			return self.psisMatrix
+		else:
+			(result, gotIt) = CommonApp.tryGetFromCache(self)
+			if gotIt:
+				self.psisMatrix = result
+				return result
 
-			return result
+		sys.stdout.write("%")
+		sys.stdout.flush()
 
-		assert(self.params.babyData == 0)
 		features = []
 
 
@@ -116,7 +118,8 @@ class ImageExample:
 			features.append(singleResult)
 
 		result = sparse.hstack( features).T.asformat('csc')
-		CommonApp.putInCache(self, result)
+		self.psisMatrix = result
+		CommonApp.putInCache(self, result )
 		return result
 
 	def highestScoringLV(self,w, labelY):
@@ -158,16 +161,16 @@ def loadKernelFile(params):
 def loadDataFile(params):
 	tFile = open(params.dataFile,'r')
 	params.numExamples= int(tFile.readline())
-	params.examples = []
-	params.cache= PsiCache.PsiCache()
+	examples = []
 
 	for line in tFile:
-		params.examples.append(ImageExample(params, len(params.examples), line))
+		examples.append(ImageExample(params, len(examples), line))
 
 	print "total number of examples (including duplicates) = " + repr(params.numExamples)
 	sys.stdout.write('\n')
-	assert(params.numExamples == len(params.examples))
+	assert(params.numExamples == len(examples))
+	return examples
 
 def loadExamples(params):
 	loadKernelFile(params)
-	loadDataFile(params)
+	return loadDataFile(params)

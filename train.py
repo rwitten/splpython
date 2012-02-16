@@ -6,25 +6,36 @@ import Performance
 import UserInput
 import SPLSelector
 
+
+import sys
+
 def main():
-	params = UserInput.getUserInput('train')	
-	ExampleLoader.loadExamples(params)
-	CommonApp.setExampleCosts(params)
-	w = None
-	if params.initialModelFile:
-		w = CacheObj.loadObject(params.initialModelFile)
-	else:
-		w = CommonApp.PsiObject(params,False)
+	try:
+		params = UserInput.getUserInput('train')	
+		ExampleLoader.loadExamples(params)
+		CommonApp.setExampleCosts(params)
+		w = None
+		if params.initialModelFile:
+			w = CacheObj.loadObject(params.initialModelFile)
+		else:
+			w = CommonApp.PsiObject(params,False)
 
-	globalSPLVars = SPLSelector.SPLVar()
-	globalSPLVars.fraction = 1.0
-	
-	if params.splParams.splMode != 'CCCP':
-		SPLSelector.setupSPL(params.examples, params)
+		globalSPLVars = SPLSelector.SPLVar()
+		globalSPLVars.fraction = 1.0
+		
+		if params.splParams.splMode != 'CCCP':
+			SPLSelector.setupSPL(params.examples, params)
 
-	w = LSSVM.optimize(w, globalSPLVars, params)
-	CacheObj.cacheObject(params.modelFile,w)
-	Performance.printStrongAndWeakTrainError(params, w)
+		w = LSSVM.optimize(w, globalSPLVars, params)
+		CacheObj.cacheObject(params.modelFile,w)
+		Performance.printStrongAndWeakTrainError(params, w)
+	except Exception, e :
+		import traceback
+		traceback.print_exc(file=sys.stdout)
+		if params.processes is not None:
+			for p in params.processes:
+				p.terminate()
+		sys.exit(1)
 
 if __name__== "__main__":
 	main()

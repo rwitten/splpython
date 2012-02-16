@@ -5,6 +5,7 @@ from imageImplementation import PsiCache
 import multiprocessing
 import sys
 
+
 def loadDataFile(trainFile, params):
 	tFile = open(trainFile,'r')
 	params.numExamples= int(tFile.readline())

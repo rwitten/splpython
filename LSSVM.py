@@ -11,12 +11,7 @@ import SPLInnerLoop
 import SSVM
 
 def initLatentVariables(w, params):
-	for i in range(len(params.examples)):
-		params.examples[i].h = random.randint(0, len(params.examples[i].hlabels) - 1)
-		if params.supervised:
-			assert(params.examples[i].h == 0)
-	if params.initialModelFile:
-		HImputation.impute(w, params)
+	HImputation.impute(w, params)
 
 def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
 	obj,margin,constraint = SSVM.computeObjective(w, params)

@@ -129,7 +129,7 @@ def setOptions(optdict, train_or_test):
 #		for i in range(numConsumers):
 #			params.processes[p].start()
 
-		params.processPool = multiprocessing.Pool()
+		#params.processPool = multiprocessing.Pool()
 		return params
 
 
