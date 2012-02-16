@@ -109,6 +109,13 @@ def accessExamples(params, blob, mapper, combiner):
 		A = params.outputQueue.get()
 		output.append(A)
 
+
+	outputNew = []
+	if combiner is None:
+		for chunk in output:
+			outputNew = outputNew +  chunk
+		output = outputNew
+
 	return output
 		
 	

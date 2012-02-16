@@ -3,6 +3,8 @@ from imageImplementation import SyntheticApp
 import multiprocessing
 from multiprocessing import Process
 
+import math
+
 class  ConsumerProcess( Process ):
 	"""Consumes items from a Queue.
 
@@ -31,7 +33,7 @@ def chunks(list, numChunks):
 	if numChunks>len(list):
 		return  [ [list[i]] for i in range(0, len(list))]
 		
-	chunkLength = len(list)/numChunks
+	chunkLength = int(math.ceil(float(len(list))/numChunks))
 	return [list[i:i+chunkLength] for i in range(0, len(list), chunkLength)]
 
 def loadExamples(params):

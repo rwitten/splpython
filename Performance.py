@@ -1,14 +1,15 @@
 from imageImplementation import CommonApp
+from imageImplementation import logging
 
 import sys
 
 
 def getScoresWLandY(w, example):
 	return example.findScoreAllClasses(w), example.whiteList,example.trueY
+
 def printStrongAndWeakTrainError(params, wBest):
 	numCorrect = 0.0
 	exampleScoresList = CommonApp.accessExamples(params,wBest,getScoresWLandY,  None)
-	import pdb ; pdb.set_trace()
 	for scores,whiteList,trueY in exampleScoresList:
 		bestLabel = -1
 		maxScore = -1e100
@@ -20,7 +21,6 @@ def printStrongAndWeakTrainError(params, wBest):
 		assert(bestLabel >= 0)
 		if bestLabel == trueY:
 			numCorrect+=1
-
 	trainingError = 1.0 - (numCorrect/float(params.numExamples))
 	print("Evaluation error: %f"%(trainingError))
 

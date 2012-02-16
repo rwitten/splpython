@@ -32,6 +32,7 @@ def main():
 	except Exception, e :
 		import traceback
 		traceback.print_exc(file=sys.stdout)
+	finally:
 		if params.processes is not None:
 			for p in params.processes:
 				p.terminate()
