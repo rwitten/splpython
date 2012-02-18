@@ -37,10 +37,14 @@ def setOptions(optdict, train_or_test):
 	params.babyData = 0
 	params.balanceClasses = 0
 
-#	assert('--splControl' in optdict)
+	if '--splMode' in optdict:
+		params.splParams.splMode = optdict['--splMode']
+
+	if params.splParams.splMode != 'CCCP':
+		assert('--splControl' in optdict)
 	if '--splControl' in optdict:
 		params.splParams.splControl = int(optdict['--splControl'])
-
+	
 	if '--splInitIters' in optdict:
 		params.splParams.splInitIters = int(optdict['--splInitIters'])
 
@@ -76,8 +80,6 @@ def setOptions(optdict, train_or_test):
 	if '--epsilon' in optdict:
 		params.epsilon = float(optdict['--epsilon'])
 	
-	if '--splMode' in optdict:
-		params.splParams.splMode = optdict['--splMode']
 	
 	if '--seed' in optdict:
 		params.seed = int(optdict['--seed'])

@@ -24,7 +24,7 @@ def main():
 		globalSPLVars.fraction = 1.0
 		
 		if params.splParams.splMode != 'CCCP':
-			SPLSelector.setupSPL(params.examples, params)
+			SPLSelector.setupSPL(params)
 
 		w = LSSVM.optimize(w, globalSPLVars, params)
 		CacheObj.cacheObject(params.modelFile,w)
