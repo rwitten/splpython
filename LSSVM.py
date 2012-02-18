@@ -39,6 +39,6 @@ def optimize(w, globalSPLVars, params):
 			break
 		
 		CacheObj.cacheObject(params.modelFile + "."+str(iter), w)
-		
+	print("Best objective attained is %f" % bestObj)		
 
 	return w

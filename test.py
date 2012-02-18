@@ -7,14 +7,24 @@ import UserInput
 
 import os
 import signal
+import sys
 
 def main():
-	params = UserInput.getUserInput('test')
-	ExampleLoader.loadExamples(params)
-	w = CacheObj.loadObject(params.modelFile)
-	Performance.writePerformance(params, w, params.resultFile)
+	try:
+		params = UserInput.getUserInput('test')
+		ExampleLoader.loadExamples(params)
+		w = CacheObj.loadObject(params.modelFile)
+		Performance.writePerformance(params, w, params.resultFile)
+		Performance.printStrongAndWeakTrainError(params, w)
+	except Exception, e :
+		import traceback
+		traceback.print_exc(file=sys.stdout)
+	finally:
+		if params.processes is not None:
+			for p in params.processes:
+				p.terminate()
+		sys.exit(1)
 
-	return params
 
 if __name__== "__main__":
 	main()

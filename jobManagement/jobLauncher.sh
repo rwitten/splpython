@@ -1,12 +1,14 @@
-for C in 10 1000
+NUMYLABELS=2
+
+for C in 1
 do
 	for foldnum in 1
 	do
-		for class in 'final'
+		for class in {0..3}
 		do
-			for algorithm in 'CCCP' 'SPL'
+			for algorithm in 'CCCP' 
 			do
-				for splControl in  0 1
+				for splControl in  0
 				do
 					basedir=`./name.sh $C $foldnum $class $algorithm $splControl`
 					scriptname=jobs/${basedir}.sh
@@ -14,10 +16,10 @@ do
 					CHANGE_DIR="cd $SPL_BASE_DIR"
 
 
-					TRAIN="$EPYTHON train.py --initialModelFile=goodStartingPoints/CCCP.model.cpz --splControl=${splControl} --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
-					TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=train/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
+					TRAIN="$EPYTHON train.py --splControl=${splControl} --splMode=$algorithm --C=${C} --scratchFile=output/$basedir.train --numYLabels=${NUMYLABELS} --dataFile=trainScratch/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz >& output/${basedir}.train.output"
+					TEST_ON_TRAIN="$EPYTHON test.py --scratchFile=output/$basedir.testOnTrain --dataFile=trainScratch/train.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels=${NUMYLABELS} --resultFile=output/${basedir}.train.results >& output/${basedir}.train.testoutput"
 
-					TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=train/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels 20 --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
+					TEST_ON_TEST="$EPYTHON test.py --scratchFile=output/$basedir.testOnTest --dataFile=trainScratch/test.${class}_${foldnum}.txt --modelFile=output/${basedir}.model.cpz --numYLabels=${NUMYLABELS} --resultFile=output/${basedir}.test.results >& output/${basedir}.test.output"
 
 					command_starttimestamp="date > ./output/${basedir}.starttime"
 					command_hostname="hostname> ./output/${basedir}.hostname"
@@ -26,6 +28,8 @@ do
 					command_endtime='END=$(date +%s)'
 					command_difference='DIFF=$(( $END - $START ))'
 					command_time_passed="echo \${DIFF} > ./output/${basedir}.totaltime"
+					command_postprocess="./processOutput.sh ${basedir}"
+
 
 
 					echo $CHANGE_DIR > $scriptname
@@ -36,6 +40,7 @@ do
 					echo $TRAIN >> $scriptname
 					echo $TEST_ON_TRAIN >> $scriptname
 					echo $TEST_ON_TEST >> $scriptname
+					echo $command_postprocess >> $scriptname
 
 					echo $command_endtimestamp >> $scriptname
 					echo $command_endtime >> $scriptname

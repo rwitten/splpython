@@ -22,10 +22,10 @@ def printStrongAndWeakTrainError(params, wBest):
 		if bestLabel == trueY:
 			numCorrect+=1
 	trainingError = 1.0 - (numCorrect/float(params.numExamples))
-	print("Evaluation error: %f"%(trainingError))
+	print("\nEvaluation error: %f"%(trainingError))
 
-def getScoresandUUID(w,examples):
-	return example.findScoreAllClasses(ww), example.fileUUID	
+def getScoresandUUID(w,example):
+	return example.findScoreAllClasses(w), example.fileUUID	
 
 def writePerformance(params, w, resultFile):
 	fh= open(resultFile, 'w')
@@ -37,8 +37,7 @@ def writePerformance(params, w, resultFile):
 			continue
 		else:
 			UUIDs[UUID] = 1
-		exampleScores= example.findScoreAllClasses(w)
-		fh.write("%s " %example.fileUUID)
+		fh.write("%s " %UUID)
 		for key in exampleScores:
 			fh.write("%d %f " %(key, exampleScores[key]))
 		fh.write("\n")

@@ -33,13 +33,13 @@ def setOptions(optdict, train_or_test):
 	params.splParams.splInitIters = 0
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
-	params.splParams.splControl= 0
 
 	params.babyData = 0
 	params.balanceClasses = 0
 
-	assert('--splControl' in optdict)
-	params.splParams.splControl = int(optdict['--splControl'])
+#	assert('--splControl' in optdict)
+	if '--splControl' in optdict:
+		params.splParams.splControl = int(optdict['--splControl'])
 
 	if '--splInitIters' in optdict:
 		params.splParams.splInitIters = int(optdict['--splInitIters'])
