@@ -25,21 +25,21 @@ def setSelected(taskEachExample, splMode, k, ybar, value):
 		print("ERROR: setSelected() does not support splMode = %s\n"%(splMode))
 		assert(0)
 
-def setupSPL(examples, params):
-	def setupSPLEachExample(example):
-		example.localSPLVars = SPLVar()
-		if params.splParams.splMode == 'SPL':
-			example.localSPLVars.selected = 1.0
-		elif params.splParams.splMode == 'SPL+':
-			example.localSPLVars.selected = numpy.ones((1, params.numKernels))
-		elif params.splParams.splMode == 'SPL++':
-			example.localSPLVars.selected = []
-			for i in range(params.numYLabels):
-				example.localSPLVars.selected.append(numpy.ones((1, params.numKernels)))
-		else:
-			assert(0)
+def setupSPLEachExample(ignore, example):
+	example.localSPLVars = SPLVar()
+	if example.params.splParams.splMode == 'SPL':
+		example.localSPLVars.selected = 1.0
+#	elif params.splParams.splMode == 'SPL+':
+#		example.localSPLVars.selected = numpy.ones((1, params.numKernels))
+#	elif params.splParams.splMode == 'SPL++':
+#		example.localSPLVars.selected = []
+#		for i in range(params.numYLabels):
+#			example.localSPLVars.selected.append(numpy.ones((1, params.numKernels)))
+	else:
+		assert(0)
 
-	map(setupSPLEachExample, examples)
+def setupSPL(params):
+	CommonApp.accessExamples(params, None, setupSPLEachExample, None)
 
 #note: This must return a (taskEachExample, contribution) tuple
 def contributionForEachExample(taskEachExample):
@@ -170,17 +170,6 @@ def getNumWhiteListed(params, trueYExamples):
 
 	return numWhiteListed
 
-def getPoolSize(totalNumExamples, maxNumAlive):
-	return int(math.ceil(float(maxNumAlive) / float(totalNumExamples) * 40.0))
-
-def computeViolation(scoreDict, trueY):
-	maxOpposingScore = -1e10
-	for key in scoreDict:
-		if key != trueY:
-			if maxOpposingScore < scoreDict[key]:
-				maxOpposingScore= scoreDict[key]
-	
-	return scoreDict[trueY] - maxOpposingScore
 
 def findCutoffs(allViolations, labels, numYLabels,fraction):
 	cutoffDict= {}
@@ -193,38 +182,58 @@ def findCutoffs(allViolations, labels, numYLabels,fraction):
 		cutoffDict[index] = violations[int(round(len(violations)*fraction+.01))-1]
 
 	return cutoffDict
+
+def computeViolation(scoreDict, trueY):
+	maxOpposingScore = -1e10
+	for key in scoreDict:
+		if key != trueY:
+			if maxOpposingScore < scoreDict[key]:
+				maxOpposingScore= scoreDict[key]
 	
+	return scoreDict[trueY] - maxOpposingScore
+	
+def findYAndViolation( w, example):
+	return example.trueY, computeViolation(example.findScoreAllClasses(w, True), example.trueY)
+
+def updateSelectionSPL(wCutoffDictandFraction, example):
+	w= wCutoffDictandFraction[0]
+	cutoffDict= wCutoffDictandFraction[1]
+	fraction = wCutoffDictandFraction[2]
+	ignore, violation = findYAndViolation(w, example)
+	if not example.params.splParams.splControl:
+		if cutoffDict[example.trueY] >= violation:
+			example.localSPLVars.selected = 1.0
+		else:
+			example.localSPLVars.selected = 0
+	else:
+		temp = random.random()
+		if temp<fraction:
+			example.localSPLVars.selected = 1.0
+		else:
+			example.localSPLVars.selected = 0
+
+	return (example.trueY, example.localSPLVars.selected)
+
+def getTrueY(example):
+	return example.trueY
 
 def select(globalSPLVars, w, params):
-	random.seed()
-	scorings = [example.findScoreAllClasses(w,True) for example in params.examples]
-	labels = map( lambda x : x.trueY, params.examples)
-	violations = map(computeViolation, scorings, labels)
+	labels, violations= zip(*CommonApp.accessExamples(params,w, findYAndViolation, None))
 	cutoffDict = findCutoffs(violations, labels, params.numYLabels,globalSPLVars.fraction)
-	for index in range(len(params.examples)):
-		if not params.splParams.splControl:
-			if cutoffDict[params.examples[index].trueY] >= violations[index]:
-				params.examples[index].localSPLVars.selected = 1.0
-			else:
-				params.examples[index].localSPLVars.selected = 0
-		else:
-			temp = random.random()
-			print("drew a %f" % temp)
-			print("value is " + str(temp<globalSPLVars.fraction))
-			if temp<globalSPLVars.fraction:
-				params.examples[index].localSPLVars.selected = 1.0
-			else:
-				params.examples[index].localSPLVars.selected = 0
+	trueYAndSelections = CommonApp.accessExamples(params, (w, cutoffDict,globalSPLVars.fraction), updateSelectionSPL, None)	
+
+
+
 
 	for label in range(params.numYLabels):
 		total = 0
 		totalOn = 0
-		for example in params.examples:
-			if example.trueY==label:
-				totalOn += example.localSPLVars.selected
+		for trueYandSelection in trueYAndSelections:
+			if trueYandSelection[0]==label:
+				totalOn += trueYandSelection[1]
 				total+=1
 		print("For label %d totalOn %f and total %f" %( label, totalOn, total))
-	print([example.localSPLVars.selected for example in params.examples])
+#	print([example.localSPLVars.selected for example in params.examples])
 #	def jobifyEachTrueY(trueY):
 #		taskEachTrueY = SPLJob()
 #		def jobifyEachExample(example):
