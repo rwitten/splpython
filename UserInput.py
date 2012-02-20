@@ -17,7 +17,7 @@ def setOptions(optdict, train_or_test):
 	params = Params()
 	params.trainOrTest = train_or_test 
 	params.splParams = Params()
-	params.epsilon = .01
+	params.epsilon = .001
 	params.C = 1.0
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0

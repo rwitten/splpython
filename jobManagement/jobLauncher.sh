@@ -1,10 +1,10 @@
 NUMYLABELS=2
 
-for C in 1
+for C in .1 .5 1 5 10 
 do
 	for foldnum in 1
 	do
-		for class in {0..3}
+		for class in {0..19}
 		do
 			for algorithm in 'CCCP' 
 			do
@@ -47,13 +47,16 @@ do
 					echo $command_difference >> $scriptname
 					echo $command_time_passed >> $scriptname
 					chmod +x $scriptname
+					job=`pwd`/$scriptname
 
 					if [ -z $1 ]
 					then
-						echo "Not posting $scriptname" 
+						echo "Not posting $job" 
 					else
-						echo "Posting $scriptname"
-						qsub -q daglab $scriptname
+						job=`pwd`/$scriptname
+						echo "Posting $job"
+						~/bin/appendJob.pl $job
+#						qsub -q daglab $scriptname
 					fi
 				done
 			done
