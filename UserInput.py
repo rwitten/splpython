@@ -1,7 +1,9 @@
 import getopt
 import multiprocessing
-#from multiprocessing import dummy as multiprocessing
+import numpy
+import random
 import sys
+
 
 from Params import Params
 
@@ -17,7 +19,7 @@ def setOptions(optdict, train_or_test):
 	params = Params()
 	params.trainOrTest = train_or_test 
 	params.splParams = Params()
-	params.epsilon = .001
+	params.epsilon = .01
 	params.C = 1.0
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0
@@ -39,6 +41,9 @@ def setOptions(optdict, train_or_test):
 
 	if '--splMode' in optdict:
 		params.splParams.splMode = optdict['--splMode']
+
+	params.latentVariableFile = optdict['--latentVariableFile'] if '--latentVariableFile' in optdict else None
+	assert(params.latentVariableFile)
 
 	if params.splParams.splMode != 'CCCP':
 		assert('--splControl' in optdict)
@@ -83,6 +88,8 @@ def setOptions(optdict, train_or_test):
 	
 	if '--seed' in optdict:
 		params.seed = int(optdict['--seed'])
+	random.seed(params.seed)
+	numpy.random.seed(params.seed)
 	
 	if '--maxOuterIters' in optdict:
 		params.maxOuterIters = int(optdict['--maxOuterIters'])
@@ -134,11 +141,8 @@ def setOptions(optdict, train_or_test):
 		#params.processPool = multiprocessing.Pool()
 		return params
 
-
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=', 'splControl=']
-
-
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=', 'splControl=','latentVariableFile=']
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 

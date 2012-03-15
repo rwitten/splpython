@@ -1,10 +1,11 @@
 # invocation is ./name.sh $C $foldnum $class $algorithm
 
 C=$1
-foldnum=$2
-class=$3
-algorithm=$4
-splControl=$5
+seed=$2
+foldnum=$3
+class=$4
+algorithm=$5
+splControl=$6
 
-echo ${algorithm}_C${C}_${class}_${foldnum}_${splControl}
+echo ${algorithm}_${seed}_C${C}_${class}_${foldnum}_${splControl}
 

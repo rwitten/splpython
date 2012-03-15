@@ -28,7 +28,7 @@ def setSelected(taskEachExample, splMode, k, ybar, value):
 def setupSPLEachExample(ignore, example):
 	example.localSPLVars = SPLVar()
 	if example.params.splParams.splMode == 'SPL':
-		example.localSPLVars.selected = 1.0
+		example.localSPLVars.selected = 0.0
 #	elif params.splParams.splMode == 'SPL+':
 #		example.localSPLVars.selected = numpy.ones((1, params.numKernels))
 #	elif params.splParams.splMode == 'SPL++':
@@ -177,7 +177,7 @@ def findCutoffs(allViolations, labels, numYLabels,fraction):
 		relevantExamples = filter( lambda violationLabelTuple : violationLabelTuple[1]==index ,zip(allViolations, labels))
 		violations = map(lambda violationLabelTuple: violationLabelTuple[0], relevantExamples)
 		violations.sort()
-		print("len(violations) %f fraction %f index %f" %( len(violations), fraction, int(round(len(violations)*fraction+.01))-1 ))
+		print("len(violations) %f fraction %f count %f index %d" %( len(violations), fraction, int(round(len(violations)*fraction+.01))-1,index ))
 		assert(len(violations)>0)
 		cutoffDict[index] = violations[int(round(len(violations)*fraction+.01))-1]
 
@@ -207,23 +207,31 @@ def updateSelectionSPL(wCutoffDictandFraction, example):
 			example.localSPLVars.selected = 0
 	else:
 		temp = random.random()
-		if temp<fraction:
-			example.localSPLVars.selected = 1.0
+		if example.params.splParams.splControl == 1:
+			if temp<fraction:
+				example.localSPLVars.selected = 1.0
+			else:
+				example.localSPLVars.selected = 0
 		else:
-			example.localSPLVars.selected = 0
+			assert(example.params.splParams.splControl == 2)
+			oldfraction = fraction - example.params.splParams.splIncrement
+			incrementfraction = example.params.splParams.splIncrement/(1-oldfraction)
+			if example.localSPLVars.selected or temp<incrementfraction:
+				example.localSPLVars.selected = 1.0
+			else:
+				example.localSPLVars.selected = 0
 
 	return (example.trueY, example.localSPLVars.selected)
 
 def getTrueY(example):
 	return example.trueY
 
+
 def select(globalSPLVars, w, params):
+	print("Fraction %f" % globalSPLVars.fraction)
 	labels, violations= zip(*CommonApp.accessExamples(params,w, findYAndViolation, None))
 	cutoffDict = findCutoffs(violations, labels, params.numYLabels,globalSPLVars.fraction)
 	trueYAndSelections = CommonApp.accessExamples(params, (w, cutoffDict,globalSPLVars.fraction), updateSelectionSPL, None)	
-
-
-
 
 	for label in range(params.numYLabels):
 		total = 0
@@ -233,37 +241,4 @@ def select(globalSPLVars, w, params):
 				totalOn += trueYandSelection[1]
 				total+=1
 		print("For label %d totalOn %f and total %f" %( label, totalOn, total))
-#	print([example.localSPLVars.selected for example in params.examples])
-#	def jobifyEachTrueY(trueY):
-#		taskEachTrueY = SPLJob()
-#		def jobifyEachExample(example):
-#			taskEachExample = SPLJob()
-#			taskEachExample.splMode = taskEachTrueY.splMode
-#			taskEachExample.localSPLVars = example.localSPLVars
-#			taskEachExample.fmvcJob = CommonApp.createFMVCJob(example, params,w)
-#			taskEachExample.whiteList = example.whiteList
-#			return taskEachExample
-#
-#		taskEachTrueY.totalNumExamples = params.numExamples
-#		taskEachTrueY.numYLabels = params.numYLabels
-#		taskEachTrueY.numKernels = params.numKernels
-#		taskEachTrueY.splMode = params.splParams.splMode
-#		taskEachTrueY.splInnerIters = params.splParams.splInnerIters
-#		taskEachTrueY.fraction = globalSPLVars.fraction
-#		trueYExamples = getExamplesWithTrueY(params, trueY)
-#		if params.splParams.splMode == 'SPL++':
-#			taskEachTrueY.numWhiteListed = getNumWhiteListed(params, trueYExamples)
-#
-#		taskEachTrueY.trueY = trueY
-#		taskEachTrueY.tasksByExample = map(jobifyEachExample, trueYExamples) #hopefully won't have to parallelize this
-#		initLocalSPLVars(taskEachTrueY, params.splParams.splMode) #randomly include fraction of examples
-#		return taskEachTrueY
-#
-#	splstart = datetime.datetime.now() 
-#	tasksByTrueY = map(jobifyEachTrueY, range(params.numYLabels))
-#	params.processPool.map(selectForEachTrueY, tasksByTrueY)
-#	#map(selectForEachTrueY, tasksByTrueY)
-#	splend = datetime.datetime.now()
-#	print("SPL update took %f seconds\n"%((splend - splstart).total_seconds()))
-#	#print("by the time I get printed, everything should be finished\n")
-#	#map(selectForEachTrueY, tasksByTrueY)
+

@@ -2,36 +2,47 @@ import math
 import numpy
 from scipy import linalg
 import sys
+import utils
 import random
 
-
+from imageImplementation import CommonApp
 import HImputation
 from imageImplementation import CacheObj
 import SPLInnerLoop
 import SSVM
 
-def initLatentVariables(w, params):
-	HImputation.impute(w, params)
 
-def checkConvergence(w, globalSPLVars, params, curBestObj, wBest):
+def initLatentVariables(w, params):
+	if params.initialModelFile:
+		HImputation.impute(w, params)
+	
+def checkConvergence(w, globalSPLVars, params, curBestObj, wBest,iter):
+	if (params.splParams.splMode!='CCCP') and globalSPLVars.fraction < .9999: #NOT INCLUDING EVERYTHING, IGNORE RESULTS
+		return ( False, numpy.inf, w)
+
+
 	obj,margin,constraint = SSVM.computeObjective(w, params)
 
 	if obj < curBestObj:
 		wBest = w
-		
+
+	if params.splParams.splControl and params.splParams.splMode == 'CCCP' and iter < 5: #WE USE 5 ITERATIONS TO ACHIEVE COMPUTATIONAL PARITY
+		return (False, min([obj, curBestObj]), wBest)
+
 	return (obj >= (curBestObj - params.maxDualityGap), min([obj, curBestObj]), wBest)
 
 def optimize(w, globalSPLVars, params):
-	random.seed(params.seed)
 	bestObj = numpy.inf
 	initLatentVariables(w, params)
+	utils.dumpCurrentLatentVariables(params, "%s.%s"%(params.latentVariableFile, 'init'))
 	for iter in xrange(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
 		w = SPLInnerLoop.optimize(w, globalSPLVars, params, iter)
 		print("Imputing h")
-		HImputation.impute(w, params) #this may interact with SPL at some point
-		(converged, bestObj, w) = checkConvergence(w, globalSPLVars, params, bestObj, w)
-		if converged and iter > params.splParams.splInitIters and globalSPLVars.fraction >= 1.0:
+		HImputation.impute(w, params) 
+		(converged, bestObj, w) = checkConvergence(w, globalSPLVars, params, bestObj, w,iter)
+		print("Best obj %f" % bestObj)
+		if converged and ((params.splParams.splMode=='CCCP') or (iter > params.splParams.splInitIters and globalSPLVars.fraction >= 1.0)):
 			print("Breaking because of convergence")
 			break
 		elif params.supervised:
@@ -39,6 +50,8 @@ def optimize(w, globalSPLVars, params):
 			break
 		
 		CacheObj.cacheObject(params.modelFile + "."+str(iter), w)
-	print("Best objective attained is %f" % bestObj)		
+		utils.dumpCurrentLatentVariables(params, "%s.%d"%(params.latentVariableFile, iter))
+	utils.dumpCurrentLatentVariables(params, params.latentVariableFile)
+	print("Best objective attained is %f" % bestObj)
 
 	return w

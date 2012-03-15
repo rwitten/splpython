@@ -1,10 +1,10 @@
 from imageImplementation import CacheObj
+from imageImplementation import CommonApp
 from imageImplementation import ImageApp as App
 from imageImplementation import PsiCache
 
 import multiprocessing
 import sys
-
 
 def loadDataFile(trainFile, params):
 	tFile = open(trainFile,'r')
@@ -75,5 +75,20 @@ def writePerformance(params, w, resultFile):
 		fh.write("\n")
 
 	fh.close()
+
+def grabLatentVariables(emptyBlob, example):
+	return example.fileUUID, example.hlabels[example.h]
+
+def dumpCurrentLatentVariables(params, lvFile):
+	idLVpairs = CommonApp.accessExamples(params, None, grabLatentVariables, None)
+	fh = open(lvFile,'w')
+	idLVpairs.sort( lambda x,y: int(x[0])-int(y[0]))
+
+	for id,LV in idLVpairs:
+		fh.write("%s %d %d %d %d\n" % (id, LV.x_min, LV.x_max, LV.y_min, LV.y_max))
+
+	fh.close()
+
+
 	
 

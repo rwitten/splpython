@@ -3,6 +3,7 @@ from imageImplementation import CommonApp
 import ExampleLoader
 import LSSVM
 import Performance
+import utils
 import UserInput
 import SPLSelector
 
@@ -21,10 +22,11 @@ def main():
 			w = CommonApp.PsiObject(params,False)
 
 		globalSPLVars = SPLSelector.SPLVar()
-		globalSPLVars.fraction = 1.0
 		
 		if params.splParams.splMode != 'CCCP':
 			SPLSelector.setupSPL(params)
+	
+#		utils.dumpCurrentLatentVariables(params, "%s.%s" %(params.latentVariableFile, 'init'))
 
 		w = LSSVM.optimize(w, globalSPLVars, params)
 		CacheObj.cacheObject(params.modelFile,w)

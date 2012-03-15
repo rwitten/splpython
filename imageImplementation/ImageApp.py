@@ -5,6 +5,7 @@ import multiprocessing
 import numpy
 from numpy import random
 import os
+import random
 import re
 from scipy import sparse
 import sys
@@ -46,6 +47,7 @@ class ImageExample:
 			
 			if self.params.babyData == 1:
 				self.hlabels = self.hlabels[:50]
+			self.h = random.choice(range(len(self.hlabels)))
 
 	def processFile(self, inputFileLine):
 		sys.stdout.write("analyzing " + inputFileLine)

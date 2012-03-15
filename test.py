@@ -16,6 +16,7 @@ def main():
 		w = CacheObj.loadObject(params.modelFile)
 		Performance.writePerformance(params, w, params.resultFile)
 		Performance.printStrongAndWeakTrainError(params, w)
+		utils.dumpCurrentLatentVariables(params, params.latentVariableFile)
 	except Exception, e :
 		import traceback
 		traceback.print_exc(file=sys.stdout)
