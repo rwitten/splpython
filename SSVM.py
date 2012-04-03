@@ -7,6 +7,7 @@ from scipy import optimize
 from scipy import sparse
 import sys
 
+import Params
 from imageImplementation import CommonApp
 
 #optimization problem is
@@ -25,7 +26,7 @@ def streamprinter(text):
 #	print(text)
 
 # solves "Cutting-Plane Training of Structural SVMs", Optimization Problem 6
-def solveDualQPV2(FTF, constraintsMatrix, margins, idle, params, env,task):
+def solveDualQPV2(FTF, constraintsMatrix, margins, params, env,task):
 	def evalObjective(arg):
 		arg = numpy.asmatrix(arg).T
 		cost = (.5 * arg.T* FTF * arg)[0,0]
@@ -35,7 +36,9 @@ def solveDualQPV2(FTF, constraintsMatrix, margins, idle, params, env,task):
 	NUMVAR = FTF.shape[1]
 	NUMCON = 1
 
-	task.append(mosek.accmode.var,1)
+	if task.NUMVAR<NUMVAR:
+		task.append(mosek.accmode.var,NUMVAR-task.NUMVAR)
+		task.NUMVAR=NUMVAR
 
 	for j in range(NUMVAR):
 		task.putbound(mosek.accmode.var,j,mosek.boundkey.lo,0,numpy.inf)
@@ -191,13 +194,14 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
 	#print("w is" + repr(w.shape) )
-	(margin, constraint) = CommonApp.findCuttingPlane(w, params)
+	(margin, constraint,lvs) = CommonApp.findCuttingPlane(w, params)
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
-	return (objective, margin, constraint)
+	return (objective, margin, constraint,lvs)
 
 def initializeMosek(params):
 	env = mosek.Env ()
 	task = env.Task(0,0)
+	task.NUMVAR=0
 	task.putobjsense(mosek.objsense.maximize)
 	task.append(mosek.accmode.con,1) #one constraint at all times
 	return env, task
@@ -205,12 +209,12 @@ def initializeMosek(params):
 def cuttingPlaneOptimize(w, params, outerIter):
 	env,task = initializeMosek(params)
 
-	objective,margin, constraint = computeObjective(w, params)
+	objective,margin, constraint,lv = computeObjective(w, params)
 	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
+	lvsList = [lv]
 	F = constraint 
 	FTF = (F.T*F).todense()
 	
-	idle = [0]
 	margins = [margin]
 
 	notConverged = 1
@@ -225,7 +229,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		starttime = datetime.datetime.now()
 		startqp = datetime.datetime.now()
 
-		(w, newLB, dualityGap) = solveDualQPV2(FTF, F, margins,idle, params,env,task)
+		(w, newLB, dualityGap) = solveDualQPV2(FTF, F, margins, params,env,task)
 		print("Done with QP solve")
 		sys.stdout.flush()
 
@@ -235,7 +239,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 			LB = newLB
 		
 		startFMVC = datetime.datetime.now()	
-		(newUB, margin, constraint) = computeObjective(w, params)
+		newUB, margin, constraint,lv = computeObjective(w, params)
 		endFMVC= datetime.datetime.now()	
 
 		assert(margin - ((w.T * constraint)[0,0]) >= float(-1e-10)) 
@@ -243,7 +247,6 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		if (newUB < UB):
 			UB = newUB
 
-		idle.append(0)
 		margins.append(margin)
 		newPortion = (F.T*constraint).todense()
 		FTF = numpy.hstack( [FTF, newPortion])
@@ -251,6 +254,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		FTF = numpy.vstack( [FTF, newPortionPadded])
 	
 		F=sparse.hstack( [F, constraint])
+		lvsList.append(lv)
 		endtime= datetime.datetime.now()
 
 		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
@@ -259,6 +263,12 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		iter+=1
 		sys.stdout.flush()
 
-	objective,margin,constraint = computeObjective(w, params)
+	objective,margin,constraint,latestLVs = computeObjective(w, params)
 	print "At end of cuttingPlaneOptimize, objective = " + repr(objective)
-	return w
+
+	optState = Params.Params()
+	optState.F = F.tocsr()
+	optState.margins = margins
+	optState.latents = lvsList
+	optState.w=w
+	return w, optState

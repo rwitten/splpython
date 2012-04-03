@@ -21,7 +21,7 @@ def checkConvergence(w, globalSPLVars, params, curBestObj, wBest,iter):
 		return ( False, numpy.inf, w)
 
 
-	obj,margin,constraint = SSVM.computeObjective(w, params)
+	obj,margin,constraint,mostViolatedLatents= SSVM.computeObjective(w, params)
 
 	if obj < curBestObj:
 		wBest = w
@@ -37,9 +37,9 @@ def optimize(w, globalSPLVars, params):
 	utils.dumpCurrentLatentVariables(params, "%s.%s"%(params.latentVariableFile, 'init'))
 	for iter in xrange(params.maxOuterIters):
 		print("SSVM iteration %d"  % (iter))
-		w = SPLInnerLoop.optimize(w, globalSPLVars, params, iter)
+		w,optState = SPLInnerLoop.optimize(w, globalSPLVars, params, iter)
 		print("Imputing h")
-		HImputation.impute(w, params) 
+		HImputation.impute(optState, params) 
 		(converged, bestObj, w) = checkConvergence(w, globalSPLVars, params, bestObj, w,iter)
 		print("Best obj %f" % bestObj)
 		if converged and ((params.splParams.splMode=='CCCP') or (iter > params.splParams.splInitIters and globalSPLVars.fraction >= 1.0)):

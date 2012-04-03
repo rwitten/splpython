@@ -96,8 +96,8 @@ def chunks(list, numChunks):
 	return [list[i:i+chunkLength] for i in range(0, len(list), chunkLength)]
 
 def sumResults(result1, result2):
-	return ( result1[0]+result2[0], result1[1]+result2[1])
-
+	return ( result1[0]+result2[0], result1[1]+result2[1],None,dict(result1[3].items()+result2[3].items()) )
+	
 def accessExamples(params, blob, mapper, combiner):
 	message = (blob,mapper, combiner)
 
@@ -117,50 +117,13 @@ def accessExamples(params, blob, mapper, combiner):
 		output = outputNew
 
 	return output
-		
-	
 
 def findCuttingPlane(w, params):
-	output = accessExamples(params, w, singleFMVC, sumResults)
-	const,vec= reduce(sumResults, output)
+	output = accessExamples(params, w, singleFMVC, sumResults) #this gives "number of slaves" chunks
+	const,vec,ignore,lvs= reduce(sumResults, output) #this makes a single guy
 	const = const/params.numExamples
 	vec = vec/params.numExamples
-	return (const,vec)
-	def jobify(example):
-		job = createFMVCJob(example, params)
-		return (job)
-
-
-	numJobs = multiprocessing.cpu_count()
-	from datetime import datetime
-	try:
-		s1 = datetime.now()
-		tasks = map(jobify, params.examples)
-		tasksChunked= chunks(tasks, numJobs)
-		ws = [w]*len(tasksChunked) #if len(tasks)<numJobs, numJobs!= len(tasksChunked)
-
-		jobs = zip(tasksChunked, ws)
-
-		s2 = datetime.now()
-		print("done")
-#		output = params.processPool.map(batchFMVC, jobs)
-		output = map(batchFMVC, jobs)
-		s3 = datetime.now()
-		const,vec= reduce(sumResults, output)
-		s4 = datetime.now()
-	except KeyboardInterrupt:
-		print "Caught KeyboardInterrupt, terminating workers"
-		sys.exit(1)
-
-#	print( "first " + str( (s2-s1).total_seconds()))
-#	print( "second" + str( (s3-s2).total_seconds()))
-#	print( "third " + str( (s4-s3).total_seconds()))
-
-
-	const = const/len(params.examples)
-	vec = vec/len(params.examples)
-
-	return (const, vec)
+	return (const,vec,lvs)
 
 def highestScoringLVGeneral(w, labelY, params, psis):
 	start = labelY*params.totalLength
@@ -260,7 +223,9 @@ def singleFMVC(w, example):
 	psiBest = padCanonicalPsi(canonicalPsiBest, bestY, example.params)
 
 	psiVec = psiGiven - psiBest
-	return (example.cost * const, example.cost * copy.deepcopy(psiVec), example.cost * topScore)
+
+	lv = dict( [ (example.id, (bestY, bestH))])
+	return example.cost * const, example.cost * copy.deepcopy(psiVec), example.cost * topScore,lv
 
 
 def getFilepath(example):
