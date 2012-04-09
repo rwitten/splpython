@@ -1,6 +1,5 @@
 from imageImplementation import CommonApp
-from imageImplementation import logging
-
+import logging
 import sys
 
 
@@ -22,7 +21,7 @@ def printStrongAndWeakTrainError(params, wBest):
 		if bestLabel == trueY:
 			numCorrect+=1
 	trainingError = 1.0 - (numCorrect/float(params.numExamples))
-	print("\nEvaluation error: %f"%(trainingError))
+	logging.debug("\nEvaluation error: %f"%(trainingError))
 
 def getScoresandUUID(w,example):
 	return example.findScoreAllClasses(w), example.fileUUID	

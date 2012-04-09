@@ -1,8 +1,9 @@
 import datetime
+import logging
 import math
-import random
-import numpy
 import multiprocessing
+import numpy
+import random
 
 from imageImplementation import CommonApp
 
@@ -22,7 +23,7 @@ def setSelected(taskEachExample, splMode, k, ybar, value):
 	elif splMode == 'SPL++':
 		taskEachExample.localSPLVars.selected[ybar][0, k] = value
 	else:
-		print("ERROR: setSelected() does not support splMode = %s\n"%(splMode))
+		logging.error("ERROR: setSelected() does not support splMode = %s\n"%(splMode))
 		assert(0)
 
 def setupSPLEachExample(ignore, example):
@@ -121,8 +122,6 @@ def selectForEachTrueY(taskEachTrueY):
 	processQueue.close()
 	processQueue.join()
 	deathend = datetime.datetime.now()
-	#print("destroying pool takes %f seconds\n"%((deathend-deathstart).total_seconds()))
-	#print("finished!\n")
 
 def getExamplesWithTrueY(params, trueY):
 	trueYExamples = []
@@ -177,7 +176,7 @@ def findCutoffs(allViolations, labels, numYLabels,fraction):
 		relevantExamples = filter( lambda violationLabelTuple : violationLabelTuple[1]==index ,zip(allViolations, labels))
 		violations = map(lambda violationLabelTuple: violationLabelTuple[0], relevantExamples)
 		violations.sort()
-		print("len(violations) %f fraction %f count %f index %d" %( len(violations), fraction, int(round(len(violations)*fraction+.01))-1,index ))
+		logging.debug("len(violations) %f fraction %f count %f index %d" %( len(violations), fraction, int(round(len(violations)*fraction+.01))-1,index ))
 		assert(len(violations)>0)
 		cutoffDict[index] = violations[int(round(len(violations)*fraction+.01))-1]
 
@@ -228,7 +227,7 @@ def getTrueY(example):
 
 
 def select(globalSPLVars, w, params):
-	print("Fraction %f" % globalSPLVars.fraction)
+	logging.debug("Fraction %f" % globalSPLVars.fraction)
 	labels, violations= zip(*CommonApp.accessExamples(params,w, findYAndViolation, None))
 	cutoffDict = findCutoffs(violations, labels, params.numYLabels,globalSPLVars.fraction)
 	trueYAndSelections = CommonApp.accessExamples(params, (w, cutoffDict,globalSPLVars.fraction), updateSelectionSPL, None)	
@@ -240,5 +239,5 @@ def select(globalSPLVars, w, params):
 			if trueYandSelection[0]==label:
 				totalOn += trueYandSelection[1]
 				total+=1
-		print("For label %d totalOn %f and total %f" %( label, totalOn, total))
+		logging.debug("For label %d totalOn %f and total %f" %( label, totalOn, total))
 

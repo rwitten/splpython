@@ -1,6 +1,7 @@
 import cPickle
 import copy
 from datetime import datetime
+import logging 
 import multiprocessing
 import numpy
 from numpy import random
@@ -50,7 +51,6 @@ class ImageExample:
 			self.h = random.choice(range(len(self.hlabels)))
 
 	def processFile(self, inputFileLine):
-		sys.stdout.write("analyzing " + inputFileLine)
 		objects  = inputFileLine.split()
 		self.fileUUID= objects[0]
 		self.width = objects[2]
@@ -98,15 +98,11 @@ class ImageExample:
 			return self.psisMatrix
 		else:
 			(result, gotIt) = CommonApp.tryGetFromCache(self)
+
 			if gotIt:
 				self.psisMatrix = result
 				return result
-
-		sys.stdout.write("%")
-		sys.stdout.flush()
-
 		features = []
-
 
 		for kernelName in self.params.kernelNames:
 			self.loadData(kernelName)
@@ -168,8 +164,7 @@ def loadDataFile(params):
 	for line in tFile:
 		examples.append(ImageExample(params, len(examples), line))
 
-	print "total number of examples (including duplicates) = " + repr(params.numExamples)
-	sys.stdout.write('\n')
+	logging.debug("total number of examples (including duplicates) = " + repr(params.numExamples))
 	assert(params.numExamples == len(examples))
 	return examples
 

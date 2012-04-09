@@ -1,6 +1,7 @@
 import cPickle
 import copy
 from datetime import datetime
+import logging
 import multiprocessing
 import numpy
 from numpy import random
@@ -12,7 +13,6 @@ import sys
 
 import CacheObj
 import ImagePsi
-import logging
 
 #This is where we put stuff that's common to all applications.
 
@@ -42,7 +42,7 @@ def padCanonicalPsi(canonicalPsi, classY,  params):
 		return sparse.vstack( (before,canonicalPsi))
 
 def PsiObject(params, isFeatureVec):
-	print "params.lengthW = " + repr(params.lengthW)
+	logging.debug("params.lengthW = " + repr(params.lengthW))
 	if isFeatureVec:
 		po = sparse.dok_matrix( ( params.lengthW,1 ) )
 	else:
@@ -58,11 +58,9 @@ def OneClassPsiObject(params):
 def createFMVCJob(example,params, w=None):
 	job = FMVCJob()
 
-	#print("starting %d\n"%(example.id))
 	if params.splParams.splMode != 'CCCP':
 		job.localSPLVars = example.localSPLVars
 
-	#print("ending %d\n"%(example.id))
 	job.whiteList =  example.whiteList
 	job.ylabels = example.params.ylabels
 	job.totalLength = example.params.totalLength
@@ -99,6 +97,7 @@ def sumResults(result1, result2):
 	return ( result1[0]+result2[0], result1[1]+result2[1],None,dict(result1[3].items()+result2[3].items()) )
 	
 def accessExamples(params, blob, mapper, combiner):
+	logging.debug("Hitting examples with %s" % str(mapper))
 	message = (blob,mapper, combiner)
 
 	for queue in params.inputQueues:
@@ -130,8 +129,6 @@ def highestScoringLVGeneral(w, labelY, params, psis):
 	end= (labelY+1)*params.totalLength
 	wlocal = w[start:end,0]
 
-	#print("height of wlocal is %d\n"%(wlocal.shape[0]))
-	
 	scores = psis*wlocal;
 	maxScore = scores.max()
 	bestH = scores.argmax()
@@ -188,7 +185,6 @@ def createSPLMat(example):
 		return None
 		
 def singleFMVC(w, example):
-	#print("enter singleFMVC\n")
 	if example.params.splParams.splMode == 'SPL' and example.localSPLVars.selected == 0.0:
 		return (0.0, sparse.dok_matrix((example.params.totalLength * example.params.numYLabels, 1)), 0.0)
 
@@ -197,8 +193,13 @@ def singleFMVC(w, example):
 	givenWMat = tileW(w, example)
 	deltaVec = createDeltaVec(w, example)
 
+
+	assert(splMat.shape == (30001,2))
+	assert(fullWMat.shape == (30001,2))
+	assert(givenWMat.shape == (30001,2))
 	A = splMat * numpy.array(fullWMat)
 	B = splMat * numpy.array(givenWMat)
+
 	violatorScores = example.psis() * numpy.matrix(A)
 	givenScores = example.psis()[example.h,:] * numpy.matrix(B)
 	topViolatorScores = violatorScores.max(0)
@@ -213,7 +214,6 @@ def singleFMVC(w, example):
 	assert(bestY not in example.whiteList)
 	bestH = topViolatorScorers[0, bestY]
 	const = deltaVec[0, bestY]
-	#print("splMat is %d by %d\n"%(splMat.shape[0], splMat.shape[1]))
 
 	vMask = numpy.asmatrix((splMat[:,bestY])).T
 	canonicalPsiGiven = sparse.csr_matrix(numpy.multiply(vMask, (example.psis()[example.h,:].T).todense() ))
@@ -238,16 +238,14 @@ def getFilepath(example):
 
 def tryGetFromCache(example):
 	filepath = getFilepath(example)
+
 	if os.path.exists(filepath):
-#		result = CacheObj.loadObject(filepath)
 		try:
 			result = CacheObj.loadObject(filepath)
+			logging.debug('tryGetFromCache cache %s' % example.fileUUID)
 		except:
-			sys.stdout.write("some sort of disk corruption\n")
-			sys.stdout.flush()
+			logging.debug('tryGetFromCache corrupt weirdness %s' % example.fileUUID)
 			return (None, False)
-		sys.stdout.write("%")
-		sys.stdout.flush()
 		return (result, True)
 
 	return (None, False)

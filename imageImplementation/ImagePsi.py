@@ -2,7 +2,6 @@ from scipy import sparse
 
 
 def setPsiEntry(featureVec, params, labelY, kernel, bboxesContainingDescriptor, entry, value):
-	#print "setPsiEntry"
 	spmIndices= []
 	if bboxesContainingDescriptor[4]:
 		spmIndices.append(4)
@@ -11,12 +10,11 @@ def setPsiEntry(featureVec, params, labelY, kernel, bboxesContainingDescriptor, 
 				spmIndices.append(i)
 
 		if not (len(spmIndices) == 2):
-			print("Weirdness with spmIndices")
+			assert(0) #Weirdness with spmIndices
 	else:
 		spmIndices.append(5)
 
 	for i in spmIndices:
 		index = labelY * params.totalLength + params.kernelStarts[kernel] + i * params.rawKernelLengths[kernel] + entry #Note: we don't need to add an extra 1 for bias, 'cuz it's built into kernelStarts
-		#print "index = " + repr(index)
 		assert( index <= labelY * params.totalLength + params.kernelEnds[kernel])
 		featureVec[index,0] = value

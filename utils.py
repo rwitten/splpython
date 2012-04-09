@@ -3,6 +3,7 @@ from imageImplementation import CommonApp
 from imageImplementation import ImageApp as App
 from imageImplementation import PsiCache
 
+import logging
 import multiprocessing
 import sys
 
@@ -13,12 +14,9 @@ def loadDataFile(trainFile, params):
 	params.cache= PsiCache.PsiCache()
 
 	for line in tFile:
-		sys.stdout.write("%")
-		sys.stdout.flush()
 		params.examples.append(App.ImageExample(line, params, len(params.examples)))
 	
-	print "total number of examples (including duplicates) = " + repr(params.numExamples)
-	sys.stdout.write('\n')
+	logging.debug("total number of examples (including duplicates) = " + repr(params.numExamples))
 	assert(params.numExamples == len(params.examples))
 
 def synthesizeExamples(params):
@@ -55,8 +53,8 @@ def printStrongAndWeakTrainError(params, wBest):
 		numStronglyCorrect += stronglyCorrect
 		numWeaklyCorrect += weaklyCorrect
 
-	print("Weak training error: %f"%(1.0 - numWeaklyCorrect / float(params.numExamples)))
-	print("Strong training error: %f"%(1.0 - numStronglyCorrect / float(params.numExamples)))
+	logging.debug("Weak training error: %f"%(1.0 - numWeaklyCorrect / float(params.numExamples)))
+	logging.debug("Strong training error: %f"%(1.0 - numStronglyCorrect / float(params.numExamples)))
 
 def writePerformance(params, w, resultFile):
 	fh= open(resultFile, 'w')
@@ -88,7 +86,3 @@ def dumpCurrentLatentVariables(params, lvFile):
 		fh.write("%s %d %d %d %d\n" % (id, LV.x_min, LV.x_max, LV.y_min, LV.y_max))
 
 	fh.close()
-
-
-	
-

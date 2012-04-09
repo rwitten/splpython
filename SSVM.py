@@ -1,5 +1,6 @@
 import copy 
 import datetime
+import logging
 import math
 import mosek
 import numpy
@@ -23,7 +24,6 @@ from imageImplementation import CommonApp
 # Define a stream printer to grab output from MOSEK
 def streamprinter(text):
 	pass
-#	print(text)
 
 # solves "Cutting-Plane Training of Structural SVMs", Optimization Problem 6
 def solveDualQPV2(FTF, constraintsMatrix, margins, params, env,task):
@@ -65,7 +65,6 @@ def solveDualQPV2(FTF, constraintsMatrix, margins, params, env,task):
 	wOut = constraintsMatrix *numpy.asmatrix(xx).T
 	primalObj = task.getprimalobj(mosek.soltype.itr)
 	dualObj = task.getdualobj(mosek.soltype.itr)
-	print("new way gets primal %f dual %f" % (primalObj, dualObj))
 
 	return wOut,primalObj, primalObj-dualObj
 
@@ -119,7 +118,6 @@ def solveDualQP(FTF, constraintsMatrix, margins, idle, params, env,task):
 	task.putqobj(qsubi,qsubj,qval)
 			
 	r=task.optimize()
-#	print("solution status is " + str(r))
 
 	xx = numpy.zeros(NUMVAR-1, float)
 	task.getsolutionslice(mosek.soltype.itr,
@@ -138,43 +136,8 @@ def solveDualQP(FTF, constraintsMatrix, margins, idle, params, env,task):
 	primalObj = task.getprimalobj(mosek.soltype.itr)
 	dualObj = task.getdualobj(mosek.soltype.itr)
 
-	print("old way gets primal %f dual %f" % (primalObj, dualObj))
 
 	return wOut,task.getprimalobj(mosek.soltype.itr), primalObj-dualObj
-
-def cleanUp(xx, idle, params, FTF, constraintsMatrix):
-	assert((len(xx) == len(idle)) and (FTF.shape[0]==FTF.shape[1]) and (FTF.shape[0]==constraintsMatrix.shape[1]) and (len(xx)==FTF.shape[0]))
-	for index in range(len(xx)):
-		if xx[index]<10**-8:
-			idle[index] +=1
-		else:
-			idle[index] = 0
-
-	index = 0
-	toDelete = []
-	while index<len(idle) and len(idle)>1:
-		if idle[index] > params.maxIdleIters:
-			toDelete.append(index)
-			del idle[index]
-			FTF=numpy.delete(FTF,[index],0)
-			FTF=numpy.delete(FTF,[index],1)
-			constraintsMatrix =dropColumn(constraintsMatrix,index)
-		else:
-			index+=1
-	assert((FTF.shape[0]==FTF.shape[1]) and (FTF.shape[0]==constraintsMatrix.shape[1]))
-
-
-	print("CLEANUP notice: dropped %d constraints with %d left" % (len(toDelete), FTF.shape[0])) 
-	return idle, FTF, constraintsMatrix
-
-def dropColumn(constraintsMatrix, index):
-	constraintsMatrix = constraintsMatrix.tocsc()
-	if index == 0:
-		return constraintsMatrix[:, 1:]
-	elif index == constraintsMatrix.shape[1]-1:
-		return constraintsMatrix[:,:-1]
-	else:
-		return sparse.hstack( [constraintsMatrix[:,:index-1], constraintsMatrix[:,index+1:]])	
 
 #we want that [w \psi]^t [f_i 1] >= \delta_i
 
@@ -193,7 +156,6 @@ def evaluateObjectiveOnPartialQP(w, constraints, margins,params):
 
 def computeObjective(w, params):
 	objective = 0.5 * (w.T * w)[0,0]
-	#print("w is" + repr(w.shape) )
 	(margin, constraint,lvs) = CommonApp.findCuttingPlane(w, params)
 	objective += params.C*(margin - ((w.T * constraint)[0,0]))
 	return (objective, margin, constraint,lvs)
@@ -210,7 +172,7 @@ def cuttingPlaneOptimize(w, params, outerIter):
 	env,task = initializeMosek(params)
 
 	objective,margin, constraint,lv = computeObjective(w, params)
-	print("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
+	logging.debug("At beginning of iteration %f, objective = %f" % ( outerIter,objective) ) 
 	lvsList = [lv]
 	F = constraint 
 	FTF = (F.T*F).todense()
@@ -223,15 +185,13 @@ def cuttingPlaneOptimize(w, params, outerIter):
 
 	iter = 1
 	while (UB - LB > params.maxDualityGap):
-		print("Starting QP solve + constraint add")
-		sys.stdout.flush()
+		logging.debug("Starting QP solve + constraint add")
 
 		starttime = datetime.datetime.now()
 		startqp = datetime.datetime.now()
 
 		(w, newLB, dualityGap) = solveDualQPV2(FTF, F, margins, params,env,task)
-		print("Done with QP solve")
-		sys.stdout.flush()
+		logging.debug("Done with QP solve")
 
 		endqp = datetime.datetime.now()	
 
@@ -257,18 +217,17 @@ def cuttingPlaneOptimize(w, params, outerIter):
 		lvsList.append(lv)
 		endtime= datetime.datetime.now()
 
-		print( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
-#		print( "New stab at UB was %f" % newUB)
-		print( "TIMING step %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
+		logging.debug( "UB is %f and LB is %f on iteration %f" % ( UB, LB,iter) )
+		logging.debug( "TIMING step %f sec, QP took %f sec and FMVC took %f sec" % ( (endtime-starttime).total_seconds(), (endqp-startqp).total_seconds(), (endFMVC-startFMVC).total_seconds()))
 		iter+=1
-		sys.stdout.flush()
 
 	objective,margin,constraint,latestLVs = computeObjective(w, params)
-	print "At end of cuttingPlaneOptimize, objective = " + repr(objective)
+	logging.debug("At end of cuttingPlaneOptimize, objective = " + repr(objective))
 
 	optState = Params.Params()
-	optState.F = F.tocsr()
+	optState.F = F.todense()
 	optState.margins = margins
 	optState.latents = lvsList
 	optState.w=w
+	optState.outerIter= outerIter
 	return w, optState

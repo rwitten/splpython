@@ -6,13 +6,14 @@ import SPLSelector
 import SSVM
 
 def optimize(w, globalSPLVars, params, iter):
-	if params.splParams.splMode == 'CCCP' or iter < params.splParams.splInitIters:
-		w = SSVM.cuttingPlaneOptimize(w, params, iter)
+	if params.splParams.splMode == 'CCCP' or iter <= params.splParams.splInitIters:
+		wOptstateBundle= SSVM.cuttingPlaneOptimize(w, params, iter)
 	else:
-		globalSPLVars.fraction = min(params.splParams.splInitFraction + params.splParams.splIncrement * float(iter - params.splParams.splInitIters), 1.0)
-		for i in xrange(params.splParams.splOuterIters):
-			print("SPL selecting iter %d\n"%(i))
-			SPLSelector.select(globalSPLVars, w, params)
-			w = SSVM.cuttingPlaneOptimize(w, params, iter)
+		assert(0) # I don't understand
+		globalSPLVars.fraction = 1
+		SPLSelector.select(globalSPLVars, w, params)
+		wOptstateBundle  = SSVM.cuttingPlaneOptimize(w, params, iter)
 
-	return w
+
+
+	return wOptstateBundle

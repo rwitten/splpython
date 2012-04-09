@@ -1,6 +1,8 @@
 import getopt
+import logging
 import multiprocessing
 import numpy
+import os
 import random
 import sys
 
@@ -23,21 +25,24 @@ def setOptions(optdict, train_or_test):
 	params.C = 1.0
 	params.splParams.splMode = 'CCCP'
 	params.seed = 0
-	params.maxOuterIters = 20000
+	params.maxOuterIters = 10
+	params.minOuterIters = 5
+
 	params.estimatedNumConstraints = 100
 	params.syntheticParams = None
 	params.supervised = False
 	params.numYLabels = 20
 	params.maxPsiGap = 0.00001
-	params.maxIdleIters = 10
 	params.splParams.splInitFraction = 0.5
 	params.splParams.splIncrement = 0.1
-	params.splParams.splInitIters = 0
+	params.splParams.splInitIters = 1
 	params.splParams.splOuterIters = 1
 	params.splParams.splInnerIters = 1
 
 	params.babyData = 0
 	params.balanceClasses = 0
+
+	params.UCCCP = int(optdict['--UCCCP'])
 
 	if '--splMode' in optdict:
 		params.splParams.splMode = optdict['--splMode']
@@ -118,6 +123,15 @@ def setOptions(optdict, train_or_test):
 	assert('--scratchFile' in optdict)
 	params.scratchFile = optdict['--scratchFile']
 
+	logFile = '%s.log' %params.scratchFile
+
+	try:
+		os.remove(logFile) 
+	except OSError, e: # no such file
+		pass
+	logging.basicConfig(filename=logFile, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+	logging.debug('Logging is setup!')
+
 	params.ylabels = range(params.numYLabels)
 	params.maxDualityGap = params.C * params.epsilon
 	params.dataFile= dataFile
@@ -131,18 +145,10 @@ def setOptions(optdict, train_or_test):
 		return params
 	else:
 		assert(train_or_test =='train')
-		numConsumers = multiprocessing.cpu_count()
-#		params.inputQueues = [Queue() for i in range(numConsumers)]
-#		params.outputQueue= Queue()
-#		params.processes = [ConsumerProcess(str(i),i , inputQueues[i], outputQueue) for i in range(numConsumers)]
-#		for i in range(numConsumers):
-#			params.processes[p].start()
-
-		#params.processPool = multiprocessing.Pool()
 		return params
 
 def getUserInput(train_or_test):
-	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=', 'splControl=','latentVariableFile=']
+	longOptions = ['modelFile=', 'dataFile=', 'numYLabels=', 'C=', 'epsilon=', 'splMode=', 'seed=', 'maxOuterIters=', 'kernelFile=', 'synthetic=', 'syntheticStrength=', 'syntheticNumExamples=', 'syntheticNumLatents=', 'supervised=', 'maxPsiGap=', 'maxTimeIdle=', 'scratchFile=', 'babyData=', 'balanceClasses=', 'initialModelFile=', 'splInitIters=', 'splControl=','latentVariableFile=', 'UCCCP=']
 	if train_or_test == 'test':
 		longOptions.append('resultFile=')
 

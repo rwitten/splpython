@@ -26,8 +26,6 @@ def main():
 		if params.splParams.splMode != 'CCCP':
 			SPLSelector.setupSPL(params)
 	
-#		utils.dumpCurrentLatentVariables(params, "%s.%s" %(params.latentVariableFile, 'init'))
-
 		w = LSSVM.optimize(w, globalSPLVars, params)
 		CacheObj.cacheObject(params.modelFile,w)
 		Performance.printStrongAndWeakTrainError(params, w)

@@ -1,4 +1,5 @@
 import cPickle
+import logging
 import zlib
 
 def compressObject(object):
